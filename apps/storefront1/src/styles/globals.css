@@ -1,0 +1,212 @@
+@import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+@layer base {
+  :root {
+    /* CORE SEMANTIC COLOURS */
+    --primary: 255 59 48;
+    --primary-hover: 255 59 48 / 0.5;
+    --primary-foreground: 255 255 255;
+    --secondary: 0 15 41;
+    --secondary-hover: 250 210 75;
+    --secondary-foreground: 255 255 255;
+    --accent: 250 210 75;
+    --accent-hover: 250 210 75 / 0.5;
+    --accent-foreground: 0 0 50;
+
+    /* NEUTRALS */
+    --background: 250 250 250;
+    --surface: 255 255 255;
+    --surface-foreground: 9 9 11;
+    --surface-hover: 240 240 240 ;
+
+    --text-primary: 63 63 70;
+    --text-secondary: 75 85 99;
+    --text-tertiary: 113 113 122;
+
+    --border: 228 228 231;
+    --border-hover: 228 228 231 / 0.5;
+    --muted: 244 244 245;
+    --muted-foreground: 113 113 122;
+
+    --card: 255 255 255;
+    --card-foreground: 9 9 11;
+    --popover: 255 255 255;
+    --popover-foreground: 9 9 11;
+    --icon-hover: 244 28 28 / 0.5;
+    --icon-hover-foreground: 255 255 255;
+
+    --destructive: 239 68 68;
+    --destructive-foreground: 250 250 250;
+    --border: 228 228 231;
+    --input: 228 228 231;
+    --ring: 24 24 27; 
+    --radius: 0.5rem;          /* 8px */
+  }
+  
+
+  .dark {
+    /* CORE SEMANTIC COLOURS */
+    --primary: 175 20 20;
+    --primary-hover: 175 20 20 ;
+    --primary-foreground: 255 255 255;
+    --secondary: 0 10 31;
+    --secondary-hover: 255 255 255;
+    --secondary-foreground: 250 250 250;
+    --accent: 175 20 20;
+    --accent-hover: 39 39 42 / 0.5;
+    --accent-foreground: 250 250 250;
+
+    /* NEUTRALS */
+    --background: 0 15 41;
+    --surface: 0 10 31;
+    --surface-foreground: 250 250 250;
+    --surface-hover: 39 39 42;
+
+    --text-primary: 250 250 250;
+    --text-secondary: 228 228 231;
+    --text-tertiary: 161 161 170;
+
+    --border: 39 39 42;
+    --border-hover: 39 39 42 / 0.5;
+    --muted: 39 39 42;
+    --muted-foreground: 255 255 255; /* #a1a1aa */
+
+    --card: 0 10 31;
+    --card-foreground: 250 250 250;
+    --popover: 0 10 31;
+    --popover-foreground: 250 250 250;
+    --icon-hover: 255 255 255 / 0.5;
+    --icon-hover-foreground: 255 255 255;
+    --tooltip-background: 255 255 255;
+    --tooltip-foreground: 0 15 41;
+
+    --destructive: 239 68 68;
+    --destructive-foreground: 250 250 250;
+    --input: 39 39 42;
+    --ring: 250 250 250;
+    --radius: 0.5rem;
+  }
+}
+
+@layer utilities {
+  /* Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+
+  input:focus ~ label,
+  input:not(:placeholder-shown) ~ label {
+    @apply -translate-y-2 text-xsmall-regular;
+  }
+
+  input:focus ~ label {
+    @apply left-0;
+  }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  textarea:-webkit-autofill:hover,
+  textarea:-webkit-autofill:focus,
+  select:-webkit-autofill,
+  select:-webkit-autofill:hover,
+  select:-webkit-autofill:focus {
+    border: 1px solid #212121;
+    -webkit-text-fill-color: #212121;
+    -webkit-box-shadow: 0 0 0px 1000px #fff inset;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+
+  input[type="search"]::-webkit-search-decoration,
+  input[type="search"]::-webkit-search-cancel-button,
+  input[type="search"]::-webkit-search-results-button,
+  input[type="search"]::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+  }
+}
+
+@layer components {
+  .content-container {
+    @apply max-w-[1440px] w-full mx-auto px-6;
+  }
+
+  .contrast-btn {
+    @apply px-4 py-2 border border-black rounded-full hover:bg-black hover:text-white transition-colors duration-200 ease-in;
+  }
+
+  .text-xsmall-regular {
+    @apply text-[10px] leading-4 font-normal;
+  }
+
+  .text-small-regular {
+    @apply text-xs leading-5 font-normal;
+  }
+
+  .text-small-semi {
+    @apply text-xs leading-5 font-semibold;
+  }
+
+  .text-base-regular {
+    @apply text-sm leading-6 font-normal;
+  }
+
+  .text-base-semi {
+    @apply text-sm leading-6 font-semibold;
+  }
+
+  .text-large-regular {
+    @apply text-base leading-6 font-normal;
+  }
+
+  .text-large-semi {
+    @apply text-base leading-6 font-semibold;
+  }
+
+  .text-xl-regular {
+    @apply text-2xl leading-[36px] font-normal;
+  }
+
+  .text-xl-semi {
+    @apply text-2xl leading-[36px] font-semibold;
+  }
+
+  .text-2xl-regular {
+    @apply text-[30px] leading-[48px] font-normal;
+  }
+
+  .text-2xl-semi {
+    @apply text-[30px] leading-[48px] font-semibold;
+  }
+
+  .text-3xl-regular {
+    @apply text-[32px] leading-[44px] font-normal;
+  }
+
+  .text-3xl-semi {
+    @apply text-[32px] leading-[44px] font-semibold;
+  }
+
+  @keyframes slideInFromTop {
+    from {
+      transform: translateY(-16px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "name": "adhd-toys",
+  "version": "1.0.0",
+  "description": "ADHD Toys - Complete ecommerce platform with Medusa backend and Next.js storefront",
+  "author": "ADHD Toys Team",
+  "license": "MIT",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"bun run dev:server\" \"bun run dev:storefront\"",
+    "dev:server": "cd apps/server && bun run dev",
+    "dev:storefront": "cd apps/storefront1 && bun run dev",
+    "build": "bun run build:server && bun run build:storefront",
+    "build:server": "cd apps/server && bun run build",
+    "build:storefront": "cd apps/storefront1 && bun run build",
+    "start": "concurrently \"bun run start:server\" \"bun run start:storefront\"",
+    "start:server": "cd apps/server && bun run start",
+    "start:storefront": "cd apps/storefront1 && bun run start",
+    "test": "bun run test:server",
+    "test:server": "cd apps/server && bun run test:unit",
+    "test:integration": "cd apps/server && bun run test:integration:http",
+    "test:modules": "cd apps/server && bun run test:integration:modules",
+    "lint": "bun run lint:storefront",
+    "lint:storefront": "cd apps/storefront1 && bun run lint",
+    "db:migrate": "cd apps/server && bunx medusa db:migrate",
+    "db:generate": "cd apps/server && bunx medusa db:generate",
+    "db:seed": "cd apps/server && bun run seed",
+    "setup": "bun install && bun run db:migrate && bun run db:seed",
+    "clean": "rm -rf node_modules apps/*/node_modules apps/*/.next apps/*/dist apps/*/.medusa",
+    "reset": "bun run clean && bun install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": [
+    "adhd",
+    "toys",
+    "ecommerce",
+    "medusa",
+    "nextjs",
+    "typescript",
+    "monorepo"
+  ],
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "pg": "^8.16.3",
+    "scrypt-js": "^3.0.1",
+    "scryptsy": "^2.1.0"
+  }
+}

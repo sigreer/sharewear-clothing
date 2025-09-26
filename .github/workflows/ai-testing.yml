@@ -1,0 +1,531 @@
+name: AI-Powered Testing Assistant
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Testing mode'
+        required: true
+        default: 'suggest'
+        type: choice
+        options:
+          - suggest
+          - generate
+          - full-auto
+
+env:
+  NODE_VERSION: '20'
+  BUN_VERSION: '1.1.0'
+
+jobs:
+  analyze-changes:
+    name: Analyze Code Changes
+    runs-on: ubuntu-latest
+    outputs:
+      has_server_changes: ${{ steps.detect.outputs.has_server_changes }}
+      has_storefront_changes: ${{ steps.detect.outputs.has_storefront_changes }}
+      changed_files: ${{ steps.diff.outputs.changed_files }}
+      diff_content: ${{ steps.diff.outputs.diff_content }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: diff
+        run: |
+          # Get the base branch (main or the PR base)
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+            HEAD_SHA="${{ github.sha }}"
+          fi
+
+          # Get changed files
+          CHANGED_FILES=$(git diff --name-only $BASE_SHA $HEAD_SHA | jq -R -s -c 'split("\n")[:-1]')
+          echo "changed_files=$CHANGED_FILES" >> $GITHUB_OUTPUT
+
+          # Get diff content (limited to avoid hitting GitHub limits)
+          DIFF_CONTENT=$(git diff $BASE_SHA $HEAD_SHA | head -c 50000)
+          echo "diff_content<<EOF" >> $GITHUB_OUTPUT
+          echo "$DIFF_CONTENT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Detect change types
+        id: detect
+        run: |
+          CHANGED_FILES='${{ steps.diff.outputs.changed_files }}'
+
+          # Check for server changes
+          if echo "$CHANGED_FILES" | jq -e 'any(startswith("apps/server/"))' > /dev/null; then
+            echo "has_server_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_server_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+          # Check for storefront changes
+          if echo "$CHANGED_FILES" | jq -e 'any(startswith("apps/storefront1/"))' > /dev/null; then
+            echo "has_storefront_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_storefront_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+  ai-test-suggestions:
+    name: Generate AI Test Suggestions
+    runs-on: ubuntu-latest
+    needs: analyze-changes
+    if: needs.analyze-changes.outputs.has_server_changes == 'true' || needs.analyze-changes.outputs.has_storefront_changes == 'true'
+    outputs:
+      suggestions: ${{ steps.ai.outputs.suggestions }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          npm install -g bun@${{ env.BUN_VERSION }}
+          bun install
+
+      - name: Gather context
+        id: context
+        run: |
+          # Create context gathering script
+          cat > gather-context.js << 'SCRIPT'
+          const fs = require('fs');
+          const path = require('path');
+
+          const changedFiles = JSON.parse(process.env.CHANGED_FILES || '[]');
+          const context = {
+            project: {
+              name: 'ADHD Toys Ecommerce',
+              architecture: 'Medusa v2 backend + Next.js storefront',
+              testing: {
+                server: 'Jest (unit, integration)',
+                storefront: 'Playwright (e2e, visual)'
+              }
+            },
+            changes: {
+              files: changedFiles,
+              diff: process.env.DIFF_CONTENT?.substring(0, 10000) || ''
+            },
+            existingTests: {
+              server: [],
+              storefront: []
+            }
+          };
+
+          // Find existing test files
+          const findTests = (dir, type) => {
+            try {
+              const files = fs.readdirSync(dir, { recursive: true, withFileTypes: true });
+              return files
+                .filter(f => f.isFile() && (f.name.includes('.spec.') || f.name.includes('.test.')))
+                .map(f => path.join(f.path, f.name))
+                .slice(0, 10); // Limit to avoid large output
+            } catch (e) {
+              return [];
+            }
+          };
+
+          context.existingTests.server = findTests('apps/server/src', 'server');
+          context.existingTests.storefront = findTests('apps/storefront1/tests', 'storefront');
+
+          console.log(JSON.stringify(context, null, 2));
+          SCRIPT
+
+          CHANGED_FILES='${{ needs.analyze-changes.outputs.changed_files }}' \
+          DIFF_CONTENT='${{ needs.analyze-changes.outputs.diff_content }}' \
+          node gather-context.js > context.json
+
+          cat context.json
+
+      - name: Call Claude API for test suggestions
+        id: ai
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          # Create AI request script
+          cat > ai-request.js << 'SCRIPT'
+          const https = require('https');
+          const fs = require('fs');
+
+          const context = JSON.parse(fs.readFileSync('context.json', 'utf8'));
+
+          const prompt = `You are an expert testing engineer. Analyze the following code changes and suggest appropriate tests.
+
+          Project Context:
+          ${JSON.stringify(context.project, null, 2)}
+
+          Changed Files:
+          ${context.changes.files.join('\n')}
+
+          Diff Preview:
+          ${context.changes.diff}
+
+          Existing Tests:
+          - Server: ${context.existingTests.server.length} test files
+          - Storefront: ${context.existingTests.storefront.length} test files
+
+          Please provide test suggestions in JSON format:
+          {
+            "server": [
+              {
+                "type": "unit|integration",
+                "file": "path/to/test/file",
+                "description": "what to test",
+                "priority": "high|medium|low",
+                "reason": "why this test is needed"
+              }
+            ],
+            "storefront": [
+              {
+                "type": "e2e|component",
+                "file": "path/to/test/file",
+                "description": "what to test",
+                "priority": "high|medium|low",
+                "reason": "why this test is needed"
+              }
+            ],
+            "summary": "brief summary of testing strategy"
+          }
+
+          Focus on:
+          1. Testing new functionality
+          2. Preventing regressions in modified code
+          3. Edge cases and error handling
+          4. Integration points between components
+          `;
+
+          const data = JSON.stringify({
+            model: 'claude-3-5-sonnet-20241022',
+            max_tokens: 4000,
+            messages: [{
+              role: 'user',
+              content: prompt
+            }]
+          });
+
+          const options = {
+            hostname: 'api.anthropic.com',
+            path: '/v1/messages',
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': process.env.ANTHROPIC_API_KEY,
+              'anthropic-version': '2023-06-01',
+              'Content-Length': data.length
+            }
+          };
+
+          const req = https.request(options, (res) => {
+            let body = '';
+            res.on('data', (chunk) => body += chunk);
+            res.on('end', () => {
+              try {
+                const response = JSON.parse(body);
+                const content = response.content[0].text;
+
+                // Extract JSON from response
+                const jsonMatch = content.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                  const suggestions = JSON.parse(jsonMatch[0]);
+                  console.log(JSON.stringify(suggestions, null, 2));
+                } else {
+                  console.log(JSON.stringify({ error: 'No JSON found in response', raw: content }));
+                }
+              } catch (e) {
+                console.error('Parse error:', e.message);
+                console.log(JSON.stringify({ error: e.message, raw: body }));
+              }
+            });
+          });
+
+          req.on('error', (e) => {
+            console.error(JSON.stringify({ error: e.message }));
+            process.exit(1);
+          });
+
+          req.write(data);
+          req.end();
+          SCRIPT
+
+          # Run AI request and capture output
+          SUGGESTIONS=$(node ai-request.js)
+          echo "suggestions<<EOF" >> $GITHUB_OUTPUT
+          echo "$SUGGESTIONS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          # Also save to file for next job
+          echo "$SUGGESTIONS" > ai-suggestions.json
+
+      - name: Upload suggestions artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-suggestions
+          path: ai-suggestions.json
+
+  run-existing-tests:
+    name: Run Existing Tests
+    runs-on: ubuntu-latest
+    needs: analyze-changes
+    strategy:
+      matrix:
+        include:
+          - name: Server Unit Tests
+            condition: ${{ needs.analyze-changes.outputs.has_server_changes == 'true' }}
+            command: cd apps/server && bun run test:unit
+          - name: Server Integration Tests
+            condition: ${{ needs.analyze-changes.outputs.has_server_changes == 'true' }}
+            command: cd apps/server && bun run test:integration:http
+          - name: Storefront E2E Tests
+            condition: ${{ needs.analyze-changes.outputs.has_storefront_changes == 'true' }}
+            command: cd apps/storefront1 && bunx playwright test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        if: matrix.condition == 'true'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        if: matrix.condition == 'true'
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Bun
+        if: matrix.condition == 'true'
+        run: npm install -g bun@${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        if: matrix.condition == 'true'
+        run: bun install
+
+      - name: Install Playwright browsers
+        if: matrix.condition == 'true' && matrix.name == 'Storefront E2E Tests'
+        run: cd apps/storefront1 && bunx playwright install --with-deps
+
+      - name: Run tests
+        if: matrix.condition == 'true'
+        run: ${{ matrix.command }}
+        continue-on-error: true
+
+      - name: Upload test results
+        if: matrix.condition == 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.name }}
+          path: |
+            apps/server/coverage/
+            apps/storefront1/playwright-report/
+            apps/storefront1/test-results/
+
+  report-suggestions:
+    name: Report Test Suggestions
+    runs-on: ubuntu-latest
+    needs: [ai-test-suggestions, run-existing-tests]
+    if: always()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download suggestions
+        uses: actions/download-artifact@v4
+        with:
+          name: ai-suggestions
+
+      - name: Create PR comment (if PR)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const suggestions = JSON.parse(fs.readFileSync('ai-suggestions.json', 'utf8'));
+
+            let comment = '## 🤖 AI Testing Assistant Report\n\n';
+
+            if (suggestions.error) {
+              comment += `⚠️ Error generating suggestions: ${suggestions.error}\n`;
+            } else {
+              comment += `### Summary\n${suggestions.summary || 'No summary provided'}\n\n`;
+
+              if (suggestions.server?.length > 0) {
+                comment += '### 🔧 Server Test Suggestions\n\n';
+                suggestions.server.forEach((test, i) => {
+                  const icon = test.priority === 'high' ? '🔴' : test.priority === 'medium' ? '🟡' : '🟢';
+                  comment += `${i + 1}. ${icon} **${test.type}** - \`${test.file}\`\n`;
+                  comment += `   - ${test.description}\n`;
+                  comment += `   - *Reason:* ${test.reason}\n\n`;
+                });
+              }
+
+              if (suggestions.storefront?.length > 0) {
+                comment += '### 🎨 Storefront Test Suggestions\n\n';
+                suggestions.storefront.forEach((test, i) => {
+                  const icon = test.priority === 'high' ? '🔴' : test.priority === 'medium' ? '🟡' : '🟢';
+                  comment += `${i + 1}. ${icon} **${test.type}** - \`${test.file}\`\n`;
+                  comment += `   - ${test.description}\n`;
+                  comment += `   - *Reason:* ${test.reason}\n\n`;
+                });
+              }
+
+              comment += '\n---\n';
+              comment += '*This is an automated suggestion. Review and implement tests as needed.*';
+            }
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('AI Testing Assistant Report')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }
+
+      - name: Create GitHub Issue (if push to main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const suggestions = JSON.parse(fs.readFileSync('ai-suggestions.json', 'utf8'));
+
+            if (suggestions.error) {
+              console.log('Skipping issue creation due to AI error');
+              return;
+            }
+
+            // Check if there are high-priority suggestions
+            const hasHighPriority =
+              suggestions.server?.some(t => t.priority === 'high') ||
+              suggestions.storefront?.some(t => t.priority === 'high');
+
+            if (!hasHighPriority) {
+              console.log('No high-priority test suggestions, skipping issue creation');
+              return;
+            }
+
+            const commit = context.sha.substring(0, 7);
+            const commitMsg = context.payload.head_commit?.message || 'Recent changes';
+
+            let issueBody = `## 🧪 Test Suggestions for Commit \`${commit}\`\n\n`;
+            issueBody += `**Commit**: ${commitMsg}\n`;
+            issueBody += `**Author**: @${context.actor}\n`;
+            issueBody += `**Branch**: ${context.ref.replace('refs/heads/', '')}\n\n`;
+            issueBody += `### Summary\n${suggestions.summary}\n\n`;
+
+            if (suggestions.server?.length > 0) {
+              issueBody += '### 🔧 Server Tests\n\n';
+              suggestions.server.forEach((test, i) => {
+                const icon = test.priority === 'high' ? '🔴' : test.priority === 'medium' ? '🟡' : '🟢';
+                issueBody += `- [ ] ${icon} **${test.type}** - \`${test.file}\`\n`;
+                issueBody += `  - ${test.description}\n`;
+                issueBody += `  - *${test.reason}*\n\n`;
+              });
+            }
+
+            if (suggestions.storefront?.length > 0) {
+              issueBody += '### 🎨 Storefront Tests\n\n';
+              suggestions.storefront.forEach((test, i) => {
+                const icon = test.priority === 'high' ? '🔴' : test.priority === 'medium' ? '🟡' : '🟢';
+                issueBody += `- [ ] ${icon} **${test.type}** - \`${test.file}\`\n`;
+                issueBody += `  - ${test.description}\n`;
+                issueBody += `  - *${test.reason}*\n\n`;
+              });
+            }
+
+            issueBody += '\n---\n*🤖 Auto-generated by AI Testing Assistant*';
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🧪 Test Suggestions: ${commitMsg.split('\n')[0].substring(0, 60)}`,
+              body: issueBody,
+              labels: ['testing', 'ai-suggested']
+            });
+
+      - name: Generate report file (for local access)
+        run: |
+          cat > test-suggestions.md << 'REPORT'
+          # AI Test Suggestions Report
+
+          **Workflow Run**: ${{ github.run_id }}
+          **Commit**: ${{ github.sha }}
+          **Branch**: ${{ github.ref_name }}
+          **Triggered by**: ${{ github.event_name }}
+
+          REPORT
+
+          cat ai-suggestions.json | node -e "
+            const fs = require('fs');
+            const data = JSON.parse(fs.readFileSync(0, 'utf-8'));
+
+            console.log('## Summary');
+            console.log(data.summary || 'No summary');
+            console.log('');
+
+            if (data.server?.length > 0) {
+              console.log('## Server Test Suggestions');
+              console.log('');
+              data.server.forEach((t, i) => {
+                console.log(\`\${i + 1}. **\${t.type}** - \\\`\${t.file}\\\`\`);
+                console.log(\`   - \${t.description}\`);
+                console.log(\`   - Priority: \${t.priority}\`);
+                console.log(\`   - Reason: \${t.reason}\`);
+                console.log('');
+              });
+            }
+
+            if (data.storefront?.length > 0) {
+              console.log('## Storefront Test Suggestions');
+              console.log('');
+              data.storefront.forEach((t, i) => {
+                console.log(\`\${i + 1}. **\${t.type}** - \\\`\${t.file}\\\`\`);
+                console.log(\`   - \${t.description}\`);
+                console.log(\`   - Priority: \${t.priority}\`);
+                console.log(\`   - Reason: \${t.reason}\`);
+                console.log('');
+              });
+            }
+          " >> test-suggestions.md
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-suggestions-report
+          path: test-suggestions.md
+          retention-days: 30
