@@ -1,6 +1,6 @@
 # AI Agent Team Guidelines
 
-This document contains the base instructions and coordination guidelines that apply to all AI agents working on the ADHD Toys storefront development.
+This document contains the base instructions and coordination guidelines that apply to all AI agents working on the Sharewear Clothing storefront development.
 
 ## Base Instructions for All Agents
 
@@ -15,7 +15,7 @@ This document contains the base instructions and coordination guidelines that ap
 ## Project Architecture
 
 ### Working Environment
-- **Project**: ADHD Toys storefront (`apps/storefront1/`)
+- **Project**: Sharewear Clothing storefront (`apps/storefront1/`)
 - **Framework**: Next.js 15 with React 19 RC, TypeScript
 - **Styling**: Tailwind CSS with Medusa UI preset, ShadCN/UI components
 - **State Management**: React hooks, context when needed
@@ -123,7 +123,7 @@ This document contains the base instructions and coordination guidelines that ap
 ## Resources
 
 ### Key Documentation
-- **Project Instructions**: `/tank/NextcloudSideSys/Dev/sigreer/adhd-toys/CLAUDE.md`
+- **Project Instructions**: `/localdev/sigreer/sharewear.clothing/CLAUDE.md`
 - **Medusa v2 Docs**: `docs/medusa-docs/MEDUSA_DOCS.md`
 - **Workflow Guide**: `FRONTEND_AI_WORKFLOW.md`
 - **Component Testing**: `COMPONENT_TESTING_GUIDE.md`

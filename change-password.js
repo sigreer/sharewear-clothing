@@ -23,7 +23,7 @@ async function changePassword(email, newPassword) {
   const client = new Client({
     host: 'localhost',
     port: 55432,
-    database: 'adhd-dev',
+    database: 'shareweardb',
     user: 'postgres',
     password: 'postgres',
   });
@@ -60,6 +60,6 @@ async function changePassword(email, newPassword) {
 
 // Get password from command line argument or use default
 const newPassword = process.argv[2] || 'new-secure-password';
-const email = 'admin@adhd.toys';
+const email = 'admin@sharewear.clothing';
 
 changePassword(email, newPassword);

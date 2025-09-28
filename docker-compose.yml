@@ -3,7 +3,7 @@ version: '3.8'
 services:
   meilisearch:
     image: getmeili/meilisearch:v1.5
-    container_name: adhd-toys-meilisearch
+    container_name: sharewear-clothing-meilisearch
     restart: unless-stopped
     ports:
       - "7700:7700"
