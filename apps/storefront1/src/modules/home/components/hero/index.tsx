@@ -3,8 +3,8 @@ import ShapeHero from "@/components/kokonutui/shape-hero"
 const Hero = () => {
   return (
     <ShapeHero
-      title1="ADHD Toys"
-      title2="Focus & Fun"
+      title1="Sharewear"
+      title2="Clothing"
     />
   )
 }
