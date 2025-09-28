@@ -1,8 +1,8 @@
 {
-  "name": "adhd-toys",
+  "name": "sharewear-clothing",
   "version": "1.0.0",
-  "description": "ADHD Toys - Complete ecommerce platform with Medusa backend and Next.js storefront",
-  "author": "ADHD Toys Team",
+  "description": "Sharewear Clothing - Complete ecommerce platform with Medusa backend and Next.js storefront",
+  "author": "Sharewear Clothing Team",
   "license": "MIT",
   "private": true,
   "workspaces": [
@@ -35,8 +35,8 @@
     "concurrently": "^8.2.2"
   },
   "keywords": [
-    "adhd",
-    "toys",
+    "sharewear",
+    "clothing",
     "ecommerce",
     "medusa",
     "nextjs",

@@ -1,12 +1,12 @@
 {
-  "name": "adhd-toys-storefront2",
+  "name": "sharewear-clothing-storefront",
   "version": "1.0.0",
   "private": true,
-  "author": "ADHD Toys Team",
-  "description": "ADHD Toys - Next.js storefront built with Medusa v2",
+  "author": "Sharewear Clothing Team",
+  "description": "Sharewear Clothing - Next.js storefront built with Medusa v2",
   "keywords": [
-    "adhd",
-    "toys",
+    "sharewear",
+    "clothing",
     "nextjs",
     "storefront",
     "ecommerce",

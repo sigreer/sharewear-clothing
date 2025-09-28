@@ -1,12 +1,12 @@
 {
-  "name": "adhd-toys-server",
+  "name": "sharewear-clothing-server",
   "version": "1.0.0",
-  "description": "ADHD Toys - Backend API server built with Medusa v2",
-  "author": "ADHD Toys Team",
+  "description": "Sharewear Clothing - Backend API server built with Medusa v2",
+  "author": "Sharewear Clothing Team",
   "license": "MIT",
   "keywords": [
-    "adhd",
-    "toys",
+    "sharewear",
+    "clothing",
     "ecommerce",
     "medusa",
     "typescript",
