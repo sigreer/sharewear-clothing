@@ -23,6 +23,81 @@ const maskSecret = (value?: string | null) => {
   return `${prefix}***${suffix}`
 }
 
+const parseUrlCandidate = (value?: string | null) => {
+  const trimmed = value?.trim()
+  if (!trimmed) {
+    return undefined
+  }
+
+  try {
+    return new URL(trimmed)
+  } catch (error) {
+    console.warn('[medusa-config] Ignoring invalid URL value:', trimmed)
+    return undefined
+  }
+}
+
+const deriveUrlFromAdminCors = () => {
+  const adminCors = process.env.ADMIN_CORS
+  if (!adminCors) {
+    return undefined
+  }
+
+  const origins = adminCors
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+
+  for (const origin of origins) {
+    const parsed = parseUrlCandidate(origin)
+    if (!parsed) {
+      continue
+    }
+
+    const hostname = parsed.hostname?.toLowerCase()
+    if (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '0.0.0.0' ||
+      hostname === '[::1]'
+    ) {
+      continue
+    }
+
+    return parsed
+  }
+
+  return undefined
+}
+
+const resolveLocalFileBackendUrl = () => {
+  const baseCandidate =
+    parseUrlCandidate(process.env.MEDUSA_FILE_BASE_URL) ||
+    parseUrlCandidate(process.env.MEDUSA_PUBLIC_BASE_URL) ||
+    parseUrlCandidate(process.env.MEDUSA_BACKEND_URL) ||
+    deriveUrlFromAdminCors()
+
+  if (!baseCandidate) {
+    return undefined
+  }
+
+  const baseUrl = new URL(baseCandidate.toString())
+  const currentPath = baseUrl.pathname.endsWith('/')
+    ? baseUrl.pathname.slice(0, -1)
+    : baseUrl.pathname
+
+  if (!currentPath.endsWith('/static')) {
+    const prefix = currentPath ? `${currentPath}/` : '/'
+    baseUrl.pathname = `${prefix}static`
+  } else {
+    baseUrl.pathname = currentPath
+  }
+
+  return baseUrl.toString()
+}
+
+const resolvedLocalFileBackendUrl = resolveLocalFileBackendUrl()
+
 // Prevent duplicate logging during multiple config loads
 if (!global.__MEDUSA_CONFIG_LOGGED__) {
   global.__MEDUSA_CONFIG_LOGGED__ = true
@@ -46,8 +121,18 @@ if (!global.__MEDUSA_CONFIG_LOGGED__) {
     senderEmail: process.env.MAILTRAP_SENDER_EMAIL || 'undefined',
     senderName: process.env.MAILTRAP_SENDER_NAME || 'undefined'
   })
+
+  console.info('[medusa-config] Local file provider static URL:',
+    resolvedLocalFileBackendUrl || 'default (http://localhost:9000/static)')
 }
 
+const localFileProviderOptions = {
+  upload_dir: path.join(process.cwd(), 'static'),
+  private_upload_dir: path.join(process.cwd(), 'static'),
+  ...(resolvedLocalFileBackendUrl
+    ? { backend_url: resolvedLocalFileBackendUrl }
+    : {})
+}
 
 module.exports = defineConfig({
   projectConfig: {
@@ -59,9 +144,23 @@ module.exports = defineConfig({
       authCors: process.env.AUTH_CORS!,
       jwtSecret: process.env.JWT_SECRET || "supersecret",
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
-    }
+    },
+    // Configure to not use absolute URLs
+    baseUrl: process.env.MEDUSA_BACKEND_URL || ""
   },
   modules: [
+    {
+      resolve: "@medusajs/file",
+      options: {
+        providers: [
+          {
+            resolve: "@medusajs/file-local",
+            id: "sharewear-local",
+            options: localFileProviderOptions,
+          },
+        ],
+      },
+    },
     {
       resolve: "./src/modules/dynamic-category-menu",
       options: {
@@ -154,9 +253,9 @@ module.exports = defineConfig({
     },
     {
         resolve: "@medusajs/medusa/cache-redis",
-        options: { 
+        options: {
           redisUrl: process.env.CACHE_REDIS_URL,
         },
-      }    
+      }
   ]
 })
