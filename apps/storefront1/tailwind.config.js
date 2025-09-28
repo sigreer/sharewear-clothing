@@ -90,14 +90,14 @@ module.exports = {
       },
       fontFamily: {
         sans: [
-          "Patrick Hand",
-          "-apple-system",
-          "BlinkMacSystemFont",
-          "Segoe UI",
-          "Roboto",
-          "Helvetica Neue",
-          "Ubuntu",
-          "sans-serif",
+          "Fira Code",
+          "ui-monospace",
+          "SFMono-Regular",
+          "Monaco",
+          "Consolas",
+          "Liberation Mono",
+          "Courier New",
+          "monospace",
         ],
       },
       keyframes: {

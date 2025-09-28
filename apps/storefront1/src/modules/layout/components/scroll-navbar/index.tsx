@@ -690,7 +690,7 @@ export default function ScrollNavbar({ regions, navigationItems, cart }: ScrollN
                 className="text-2xl font-semibold text-primary-foreground transition-colors hover:text-red-100"
                 data-testid="nav-store-link"
               >
-                adhd.toys
+                sharewear.clothing
               </LocalizedClientLink>
             </div>
 
@@ -723,7 +723,7 @@ export default function ScrollNavbar({ regions, navigationItems, cart }: ScrollN
                 className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 text-3xl font-semibold hover:text-gray-900 dark:hover:text-white"
                 data-testid="nav-store-link"
               >
-                adhd.toys
+                sharewear.clothing
               </LocalizedClientLink>
             </nav>
           </header>
@@ -830,7 +830,7 @@ export default function ScrollNavbar({ regions, navigationItems, cart }: ScrollN
                     className="text-2xl font-semibold text-white hover:text-red-100 transition-colors"
                     data-testid="nav-store-link"
                   >
-                    adhd.toys
+                    sharewear.clothing
                   </LocalizedClientLink>
                 </motion.div>
 
