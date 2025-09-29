@@ -4,6 +4,9 @@ import MailtrapPage, {
 import CategorySelectorPage, {
   config as categorySelectorConfig
 } from "./routes/catalog/category-selector-by-product/page"
+import MegaMenuPage, {
+  config as megaMenuConfig
+} from "./routes/catalog/mega-menu/page"
 
 // eslint-disable-next-line import/no-default-export
 export default [
@@ -16,5 +19,10 @@ export default [
     path: "/catalog/category-nav-images",
     Component: CategorySelectorPage,
     config: categorySelectorConfig
+  },
+  {
+    path: "/catalog/mega-menu",
+    Component: MegaMenuPage,
+    config: megaMenuConfig
   }
 ] as const

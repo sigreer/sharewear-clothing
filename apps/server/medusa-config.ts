@@ -170,6 +170,13 @@ module.exports = defineConfig({
       }
     },
     {
+      resolve: "./src/modules/mega-menu",
+      dependencies: [Modules.PRODUCT],
+      options: {
+        baseHref: "/store?category="
+      }
+    },
+    {
       resolve: "./src/modules/mailtrap-plugin",
       dependencies: [
         Modules.NOTIFICATION,
