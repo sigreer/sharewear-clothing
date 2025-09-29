@@ -2,36 +2,31 @@
 
 ## Overview
 
-This document outlines the comprehensive workflow for AI-assisted development of the NextJS storefront (`apps/storefront1`). This workflow is designed to work seamlessly with your preference to keep the development server running persistently while providing robust testing and validation capabilities for AI agents.
+This document outlines the comprehensive workflow for AI-assisted development of the NextJS storefront (`apps/storefront1`).
 
 ## Project Structure Context
 
 - **Storefront Location**: `apps/storefront1/`
 - **Development Port**: 8201 (configured in package.json)
 - **Framework**: Next.js 15 with React 19 RC
-- **Styling**: Tailwind CSS with Radix UI components
+- **Styling**: Tailwind CSS with ShadCNUI design system
 - **Key Dependencies**: Medusa JS SDK, Framer Motion, Lucide React
 
 ## Core Workflow Principles
 
-### 1. **Preserve Your Development Style**
-- Keep the dev server running on port 8201
-- AI agents detect and use the existing server
-- No interruption to your real-time development experience
-- Agents work alongside your active development session
-
-### 2. **Smart Server Detection**
+### 1. **Smart Server Detection**
 AI agents must ALWAYS check for running servers before taking action:
 
 ```bash
 # Primary check - your preferred port
 curl -f http://localhost:8201 >/dev/null 2>&1
 
-# If server is running, proceed with testing
-# If not running, offer to start or ask user preference
+# If server is running, proceed with testing using the existing server.
+# If the server is not running, start a new server instance with
+# bun run dev from the apps/server dir
 ```
 
-### 3. **Non-Intrusive Testing**
+### 2. **Non-Intrusive Testing**
 - Tests run against the live development server
 - Visual validation without disrupting development flow
 - Automated screenshots for component verification
