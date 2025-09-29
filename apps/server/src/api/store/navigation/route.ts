@@ -3,6 +3,10 @@ import {
   DYNAMIC_CATEGORY_MENU,
   type DynamicCategoryMenuService
 } from "../../../modules/dynamic-category-menu"
+import {
+  MEGA_MENU_MODULE,
+  type MegaMenuService
+} from "../../../modules/mega-menu"
 import { Modules } from "@medusajs/framework/utils"
 import { IProductModuleService } from "@medusajs/types"
 
@@ -49,8 +53,13 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   })
 
   const items = await menuService.buildNavigationTree(categories)
+  const megaMenuService = req.scope.resolve<MegaMenuService>(MEGA_MENU_MODULE)
+  const navigation = await megaMenuService.buildNavigationWithMegaMenu(
+    items,
+    categories
+  )
 
-  console.log("Generated navigation items:", items.length)
+  console.log("Generated navigation items:", navigation.length)
 
-  res.json({ items })
+  res.json({ items: navigation })
 }

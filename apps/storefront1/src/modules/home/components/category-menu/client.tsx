@@ -3,6 +3,7 @@
 import * as React from "react"
 
 import { cn } from "@lib/utils"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import {
   CategorySelectorEntry,
@@ -53,7 +54,40 @@ const GRID_CLASS_BY_COLUMNS = (columns: number) => {
     return "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
   }
 
-  return "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+  if (columns === 5) {
+    return "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+  }
+
+  return "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
+}
+
+const ControlButton = ({
+  direction,
+  onClick,
+  disabled,
+  className,
+}: {
+  direction: "prev" | "next"
+  onClick: () => void
+  disabled?: boolean
+  className?: string
+}) => {
+  const Icon = direction === "prev" ? ChevronLeft : ChevronRight
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={direction === "prev" ? "Previous categories" : "Next categories"}
+      className={cn(
+        "inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-foreground transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40",
+        className
+      )}
+    >
+      <Icon className="h-4 w-4" />
+    </button>
+  )
 }
 
 const shuffle = <T,>(list: T[]): T[] => {
@@ -310,51 +344,185 @@ const CategoryMenuClient: React.FC<CategoryMenuClientProps> = ({ presentation, c
   }
 
   const style = presentation.style
+  const minVisibleCount = Math.min(5, prepared.length)
+  const fallbackMaxRows = style === "carousel" ? undefined : 2
+  const hasConfiguredColumns = typeof presentation.max_columns === "number" && presentation.max_columns > 0
+  const desiredMaxColumns = hasConfiguredColumns
+    ? Math.max(presentation.max_columns, minVisibleCount)
+    : Math.max(minVisibleCount, Math.min(prepared.length, 6))
   const maxColumns = Math.min(
-    Math.max(1, presentation.max_columns ?? prepared.length),
+    Math.max(1, desiredMaxColumns),
     Math.max(1, prepared.length)
   )
+  const resolvedMaxRows = presentation.max_rows ?? fallbackMaxRows
   const gridClasses = GRID_CLASS_BY_COLUMNS(maxColumns)
-  const maxVisibleFromDimensions =
-    presentation.max_rows && presentation.max_columns
-      ? presentation.max_rows * presentation.max_columns
-      : undefined
-
-  const visibleCategories = React.useMemo(() => {
-    if (!maxVisibleFromDimensions) {
+  const gridCapacity = resolvedMaxRows ? resolvedMaxRows * maxColumns : prepared.length
+  const baseVisible = style === "carousel"
+    ? prepared.length
+    : Math.max(minVisibleCount, Math.min(gridCapacity, prepared.length))
+  const shouldPaginate = style !== "carousel" && prepared.length > baseVisible
+  const visiblePerPage = shouldPaginate ? baseVisible : prepared.length
+  const totalPages = shouldPaginate ? Math.ceil(prepared.length / visiblePerPage) : 1
+  const [pageIndex, setPageIndex] = React.useState(0)
+  const paginatedCategories = React.useMemo(() => {
+    if (!shouldPaginate) {
       return prepared
     }
-    return prepared.slice(0, maxVisibleFromDimensions)
-  }, [maxVisibleFromDimensions, prepared])
+
+    const start = pageIndex * visiblePerPage
+    return prepared.slice(start, start + visiblePerPage)
+  }, [pageIndex, prepared, shouldPaginate, visiblePerPage])
+
+  React.useEffect(() => {
+    if (!shouldPaginate) {
+      if (pageIndex !== 0) {
+        setPageIndex(0)
+      }
+      return
+    }
+
+    const maxIndex = Math.max(0, totalPages - 1)
+    if (pageIndex > maxIndex) {
+      setPageIndex(maxIndex)
+    }
+  }, [pageIndex, shouldPaginate, totalPages])
+
+  const displayedCategories = style === "carousel" ? prepared : paginatedCategories
+  const carouselRef = React.useRef<HTMLDivElement>(null)
+  const [carouselScrollState, setCarouselScrollState] = React.useState({
+    prev: false,
+    next: false,
+  })
+
+  const updateCarouselScrollState = React.useCallback(() => {
+    const node = carouselRef.current
+
+    if (!node) {
+      setCarouselScrollState({ prev: false, next: false })
+      return
+    }
+
+    const { scrollLeft, scrollWidth, clientWidth } = node
+    const maxScrollLeft = Math.max(0, scrollWidth - clientWidth)
+
+    setCarouselScrollState({
+      prev: scrollLeft > 8,
+      next: scrollLeft < maxScrollLeft - 8,
+    })
+  }, [])
+
+  React.useEffect(() => {
+    if (style !== "carousel") {
+      return
+    }
+
+    updateCarouselScrollState()
+
+    const node = carouselRef.current
+
+    if (!node) {
+      return
+    }
+
+    const handleScroll = () => {
+      updateCarouselScrollState()
+    }
+
+    node.addEventListener("scroll", handleScroll, { passive: true })
+
+    const handleResize = () => {
+      updateCarouselScrollState()
+    }
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("resize", handleResize)
+    }
+
+    return () => {
+      node.removeEventListener("scroll", handleScroll)
+      if (typeof window !== "undefined") {
+        window.removeEventListener("resize", handleResize)
+      }
+    }
+  }, [style, prepared.length, updateCarouselScrollState])
+
+  const handleCarouselStep = React.useCallback(
+    (direction: -1 | 1) => {
+      const node = carouselRef.current
+
+      if (!node) {
+        return
+      }
+
+      const firstCard = node.querySelector<HTMLElement>("[data-category-card]")
+      const gap = 24 // gap-6 => 1.5rem
+      const step = firstCard ? firstCard.offsetWidth + gap : node.clientWidth
+
+      node.scrollBy({ left: step * direction, behavior: "smooth" })
+
+      if (typeof window !== "undefined") {
+        window.requestAnimationFrame(() => {
+          updateCarouselScrollState()
+        })
+      }
+    },
+    [updateCarouselScrollState]
+  )
 
   return (
-    <section className="py-12">
-      <div className="content-container space-y-8">
-        <header className="space-y-2 text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">Shop by Category</h2>
-          <p className="text-sm text-muted-foreground">
-            Tailored picks update automatically as your catalog evolves.
-          </p>
-        </header>
-
+    <section className="pt-4 pb-8 md:pt-6 md:pb-10">
+      <div className="content-container">
         {style === "carousel" ? (
-          <div className="overflow-x-auto pb-4">
-            <div className="flex gap-6 overflow-visible pr-4 md:pr-6">
-              {visibleCategories.map((category) => (
-                <div key={category.id} className="snap-center">
+          <>
+            <div className="mb-3 flex items-center justify-end gap-2">
+              <ControlButton
+                direction="prev"
+                onClick={() => handleCarouselStep(-1)}
+                disabled={!carouselScrollState.prev}
+              />
+              <ControlButton
+                direction="next"
+                onClick={() => handleCarouselStep(1)}
+                disabled={!carouselScrollState.next}
+              />
+            </div>
+            <div ref={carouselRef} className="overflow-x-auto pb-4">
+              <div className="flex gap-6 overflow-visible pr-4 md:pr-6">
+                {displayedCategories.map((category) => (
+                  <div key={category.id} className="snap-center" data-category-card>
+                    {renderCategoryCard(category, style)}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {shouldPaginate ? (
+              <div className="mb-4 flex items-center justify-end gap-2">
+                <ControlButton
+                  direction="prev"
+                  onClick={() => setPageIndex((index) => Math.max(index - 1, 0))}
+                  disabled={pageIndex === 0}
+                />
+                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground/80">
+                  {pageIndex + 1} / {totalPages}
+                </span>
+                <ControlButton
+                  direction="next"
+                  onClick={() => setPageIndex((index) => Math.min(index + 1, totalPages - 1))}
+                  disabled={pageIndex >= totalPages - 1}
+                />
+              </div>
+            ) : null}
+            <div className={cn("gap-6", gridClasses)}>
+              {displayedCategories.map((category) => (
+                <React.Fragment key={category.id}>
                   {renderCategoryCard(category, style)}
-                </div>
+                </React.Fragment>
               ))}
             </div>
-          </div>
-        ) : (
-          <div className={cn("gap-6", gridClasses)}>
-            {visibleCategories.map((category) => (
-              <React.Fragment key={category.id}>
-                {renderCategoryCard(category, style)}
-              </React.Fragment>
-            ))}
-          </div>
+          </>
         )}
       </div>
     </section>

@@ -22,7 +22,7 @@ export interface NavItem {
   children?: Array<NavItem>
   href?: string
   description?: string
-  megaMenu?: MegaMenuContent
+  megaMenu?: MegaMenuContent | null
 }
 
 interface ScrollNavbarProps {
@@ -324,352 +324,7 @@ export default function ScrollNavbar({ regions, navigationItems, cart }: ScrollN
     }, 200) // 200ms delay for smoother transitions
   }
 
-  const staticMegaItems = React.useMemo<NavItem[]>(
-    () => [
-      {
-        id: "mega-gadgets",
-        label: "gadgets",
-        href: "/collections/gadgets",
-        megaMenu: {
-          layout: 'thumbnail-grid',
-          tagline: "Tiny dopamine gadgets that solve everyday ADHD friction points.",
-          columns: [
-            {
-              heading: "Desk Upgrades",
-              description: "Keep your command center neat and reactive.",
-              items: [
-                {
-                  label: "Cable Nest",
-                  href: "/collections/gadgets/cable-nest",
-                  description: "Weighted magnetic keeper for wayward cords.",
-                  thumbnailUrl: "https://images.unsplash.com/photo-1517430816045-df4b7de11d1d?auto=format&fit=crop&w=240&q=80"
-                },
-                {
-                  label: "Focus Dock",
-                  href: "/collections/gadgets/focus-dock",
-                  description: "Phone stand with timer + low-key fidget slider.",
-                  thumbnailUrl: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=240&q=80"
-                },
-                {
-                  label: "Modular Mat",
-                  href: "/collections/gadgets/modular-mat",
-                  description: "Snap-together tiles for sorting micro-tasks.",
-                  thumbnailUrl: "https://images.unsplash.com/photo-1580894897200-7a379874ab66?auto=format&fit=crop&w=240&q=80"
-                }
-              ]
-            },
-            {
-              heading: "Portable Helpers",
-              description: "Pocket tech for transitions and travel days.",
-              items: [
-                {
-                  label: "Pocket Pom",
-                  href: "/collections/gadgets/pocket-pom",
-                  description: "Mini Pomodoro puck with gentle buzz alerts.",
-                  thumbnailUrl: "https://images.unsplash.com/photo-1523475472560-d2df97ec485c?auto=format&fit=crop&w=240&q=80"
-                },
-                {
-                  label: "Task Tiles",
-                  href: "/collections/gadgets/task-tiles",
-                  description: "Magnetic tokens to plan on the fly.",
-                  thumbnailUrl: "https://images.unsplash.com/photo-1559060013-24752e2b2dbc?auto=format&fit=crop&w=240&q=80"
-                },
-                {
-                  label: "Quiet Clicker",
-                  href: "/collections/gadgets/quiet-clicker",
-                  description: "Discreet sensory gadget for meetings.",
-                  thumbnailUrl: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=240&q=80"
-                }
-              ]
-            },
-            {
-              heading: "Reset Stations",
-              description: "Micro-kits that help you bounce back fast.",
-              items: [
-                {
-                  label: "Glide Kit",
-                  href: "/collections/gadgets/glide-kit",
-                  description: "Cooling roller + grounding scent combo.",
-                  thumbnailUrl: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=240&q=80"
-                },
-                {
-                  label: "Snack Sync",
-                  href: "/collections/gadgets/snack-sync",
-                  description: "Timer jar that reminds you to refuel.",
-                  thumbnailUrl: "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=240&q=80"
-                },
-                {
-                  label: "Recharge Tray",
-                  href: "/collections/gadgets/recharge-tray",
-                  description: "Weighted catch-all with wireless charging.",
-                  thumbnailUrl: "https://images.unsplash.com/photo-1498050108023-bf2e231f49d4?auto=format&fit=crop&w=240&q=80"
-                }
-              ]
-            }
-          ]
-        }
-      },
-      {
-        id: "mega-gift-lab",
-        label: "gift lab",
-        href: "/collections/gift-lab",
-        megaMenu: {
-          tagline: "Curated play ideas for every kind of thinker.",
-          columns: [
-            {
-              heading: "Fidget & Focus",
-              description: "Tools to channel restless energy and boost concentration",
-              imageUrl: "https://images.unsplash.com/photo-1606103836293-63d36b108706?auto=format&fit=crop&w=400&q=80",
-              items: [
-                {
-                  label: "Fidget Spinners",
-                  href: "/collections/fidget-spinners",
-                  description: "Classic spinning satisfaction",
-                  icon: "🌀"
-                },
-                {
-                  label: "Stress Balls",
-                  href: "/collections/stress-balls",
-                  description: "Squeeze away tension",
-                  icon: "🎾"
-                },
-                {
-                  label: "Focus Timers",
-                  href: "/collections/focus-timers",
-                  description: "Pomodoro and visual timers",
-                  badge: "Popular"
-                }
-              ]
-            },
-            {
-              heading: "Sensory Play",
-              description: "Tactile experiences for sensory seekers and avoiders",
-              imageUrl: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=400&q=80",
-              items: [
-                {
-                  label: "Kinetic Sand",
-                  href: "/collections/kinetic-sand",
-                  description: "Moldable, mess-free fun",
-                  icon: "🏖️"
-                },
-                {
-                  label: "Textured Toys",
-                  href: "/collections/textured-toys",
-                  description: "Bumpy, smooth, and squishy",
-                  icon: "🔶"
-                },
-                {
-                  label: "Weighted Items",
-                  href: "/collections/weighted-items",
-                  description: "Calming pressure therapy"
-                }
-              ]
-            },
-            {
-              heading: "Creative Kits",
-              description: "Hands-on projects for hyperfocus sessions",
-              imageUrl: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?auto=format&fit=crop&w=400&q=80",
-              items: [
-                {
-                  label: "Building Sets",
-                  href: "/collections/building-sets",
-                  description: "LEGO, magnetic tiles, and more",
-                  icon: "🧱"
-                },
-                {
-                  label: "Art Supplies",
-                  href: "/collections/art-supplies",
-                  description: "Draw, paint, sculpt your way",
-                  icon: "🎨"
-                },
-                {
-                  label: "Puzzle Games",
-                  href: "/collections/puzzle-games",
-                  description: "Brain teasers and logic challenges",
-                  badge: "New"
-                }
-              ]
-            },
-            {
-              heading: "Movement & Energy",
-              description: "Active toys for bodies that need to wiggle",
-              imageUrl: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=400&q=80",
-              items: [
-                {
-                  label: "Bounce Seats",
-                  href: "/collections/bounce-seats",
-                  description: "Wobble while you work",
-                  icon: "🪑"
-                },
-                {
-                  label: "Balance Boards",
-                  href: "/collections/balance-boards",
-                  description: "Standing desk companions",
-                  icon: "⚖️"
-                },
-                {
-                  label: "Desk Bikes",
-                  href: "/collections/desk-bikes",
-                  description: "Pedal your way to focus"
-                }
-              ]
-            },
-            {
-              heading: "Organization",
-              description: "Systems and tools to tame the chaos",
-              imageUrl: "https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=400&q=80",
-              items: [
-                {
-                  label: "Storage Solutions",
-                  href: "/collections/storage-solutions",
-                  description: "Cubbies, bins, and dividers",
-                  icon: "📦"
-                },
-                {
-                  label: "Label Makers",
-                  href: "/collections/label-makers",
-                  description: "Everything needs a place",
-                  icon: "🏷️"
-                },
-                {
-                  label: "Planners & Journals",
-                  href: "/collections/planners-journals",
-                  description: "Brain dump and organize thoughts",
-                  badge: "Popular"
-                }
-              ]
-            }
-          ],
-          // featured: [
-          //   {
-          //     eyebrow: "Spotlight",
-          //     label: "Build-Your-Own Dopamine Drawer",
-          //     href: "/stories/dopamine-drawer",
-          //     description: "Stackable trays, color coding tips, and free printable dividers.",
-          //     ctaLabel: "Read the guide",
-          //     imageUrl: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=800&q=80"
-          //   },
-          //   {
-          //     eyebrow: "Bundle",
-          //     label: "Calm Down Capsule",
-          //     href: "/products/calm-down-capsule",
-          //     description: "A therapist-designed trio for sensory spills and meltdowns.",
-          //     ctaLabel: "Shop the kit",
-          //     imageUrl: "https://images.unsplash.com/photo-1526401485004-46910ecc8e51?auto=format&fit=crop&w=800&q=80"
-          //   }
-          // ]
-        }
-      },
-      {
-        id: "mega-studio",
-        label: "studio",
-        href: "/studio",
-        megaMenu: {
-          tagline: "Thinky workshops, community rituals, and printable planners.",
-          columns: [
-            {
-              heading: "Live Sessions",
-              description: "Real-time community support and body doubling",
-              imageUrl: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=400&q=80",
-              items: [
-                {
-                  label: "Body Double Co-Working",
-                  href: "/studio/body-double",
-                  description: "Live pomodoro room with quiet chat",
-                  icon: "👯"
-                },
-                {
-                  label: "Focus Fridays",
-                  href: "/studio/focus-fridays",
-                  description: "End-of-week deep work sessions",
-                  icon: "📅"
-                }
-              ]
-            },
-            {
-              heading: "Workshops",
-              description: "Skill-building sessions for executive function",
-              imageUrl: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=400&q=80",
-              items: [
-                {
-                  label: "Task Triage Clinic",
-                  href: "/studio/task-triage",
-                  description: "Turn chaos into clear action plans",
-                  icon: "🗂️"
-                },
-                {
-                  label: "Reward Loop Design",
-                  href: "/studio/workshops/reward-loop",
-                  description: "Build sustainable motivation systems",
-                  badge: "Popular"
-                }
-              ]
-            },
-            {
-              heading: "Resources",
-              description: "Downloadable tools and templates",
-              imageUrl: "https://images.unsplash.com/photo-1586953208448-b95a79798f07?auto=format&fit=crop&w=400&q=80",
-              items: [
-                {
-                  label: "Printable Sketchnotes",
-                  href: "/studio/resources/sketchnotes",
-                  description: "Visual executive function cheat-sheets",
-                  icon: "🖍️"
-                },
-                {
-                  label: "Energy Mapping Kit",
-                  href: "/studio/resources/energy-map",
-                  description: "Track your natural rhythms"
-                }
-              ]
-            },
-            {
-              heading: "Community",
-              description: "Stories, wins, and shared wisdom",
-              imageUrl: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=400&q=80",
-              items: [
-                {
-                  label: "Behind the Builds",
-                  href: "/studio/stories/behind-the-builds",
-                  description: "Makers share their creative process",
-                  badge: "New"
-                },
-                {
-                  label: "Win Wednesday",
-                  href: "/studio/stories/wins",
-                  description: "Celebrate progress, big and small"
-                }
-              ]
-            },
-            {
-              heading: "Archives",
-              description: "Past sessions and evergreen content",
-              imageUrl: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?auto=format&fit=crop&w=400&q=80",
-              items: [
-                {
-                  label: "Workshop Replays",
-                  href: "/studio/archives/workshops",
-                  description: "Catch up on missed sessions"
-                },
-                {
-                  label: "Community Playlist",
-                  href: "/studio/resources/playlist",
-                  description: "Crowdsourced focus music"
-                }
-              ]
-            }
-          ],
-        }
-      }
-    ],
-    []
-  )
 
-  const combinedNavigation = React.useMemo(() => {
-    const seen = new Set(navigationItems.map((item) => item.id))
-    const merged = staticMegaItems.filter((item) => !seen.has(item.id))
-    return [...merged, ...navigationItems]
-  }, [navigationItems, staticMegaItems])
 
 
   return (
@@ -757,7 +412,7 @@ export default function ScrollNavbar({ regions, navigationItems, cart }: ScrollN
             <div className="flex h-16 items-center">
               <div className="flex flex-1 justify-center">
                 <DesktopNav
-                  items={combinedNavigation}
+                  items={navigationItems}
                   onMegaMenuOpen={handleMegaMenuOpen}
                   onMegaMenuClose={handleMegaMenuClose}
                   openMegaMenuItem={openMegaMenuItem}
@@ -792,7 +447,7 @@ export default function ScrollNavbar({ regions, navigationItems, cart }: ScrollN
               >
                 <MegaMenuContentTransition
                   openMegaMenuItem={openMegaMenuItem}
-                  navigation={combinedNavigation}
+                  navigation={navigationItems}
                   onNavigate={handleMegaMenuClose}
                 />
               </motion.div>
@@ -837,7 +492,7 @@ export default function ScrollNavbar({ regions, navigationItems, cart }: ScrollN
                 {/* Navigation items - absolute centered */}
                 <div className="pointer-events-auto absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2">
                   <DesktopNav
-                    items={combinedNavigation}
+                    items={navigationItems}
                     merged={true}
                     onMegaMenuOpen={handleMegaMenuOpen}
                     onMegaMenuClose={handleMegaMenuClose}
@@ -885,7 +540,7 @@ export default function ScrollNavbar({ regions, navigationItems, cart }: ScrollN
                   >
                     <MegaMenuContentTransition
                       openMegaMenuItem={openMegaMenuItem}
-                      navigation={combinedNavigation}
+                      navigation={navigationItems}
                       onNavigate={handleMegaMenuClose}
                     />
                   </motion.div>
