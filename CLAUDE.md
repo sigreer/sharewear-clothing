@@ -27,9 +27,16 @@ This is a **Medusa v2** ecommerce application with a monorepo structure containi
 ## Development Commands
 
 **IMPORTANT**: Before starting development servers, check for existing instances running on the required ports:
-- Server typically runs on port 9000
-- Storefront runs on port 8000
-- Use `lsof -i :PORT` or `netstat -tlnp | grep PORT` to check if ports are in use
+- Backend server runs on port 9000
+- Admin web GUI: http://localhost:9000/app (NOT /app/admin)
+- Storefront runs on port 8201: http://localhost:8201
+- Database: postgres:postgres@localhost:55432/shareweardb
+- Use `lsof -i :PORT` to check if ports are in use
+
+**File Provider Configuration**: The file provider uses `sharewear.local:9000` for uploaded media URLs. To access media from any environment:
+- Add to `/etc/hosts`: `127.0.0.1 sharewear.local` (for local access)
+- Or add your remote IP: `<your-tailscale-ip> sharewear.local` (for remote access)
+- This allows consistent media URLs across different access methods (localhost, Tailscale, etc.)
 
 ### Server (`apps/server/`)
 ```bash
@@ -52,9 +59,9 @@ bun run test:integration:modules   # Run module integration tests
 ### Storefront (`apps/storefront1/`)
 ```bash
 cd apps/storefront1
-bun run dev     # Start development server (port 8000)
+bun run dev     # Start development server (port 8201)
 bun run build   # Build for production
-bun run start   # Start production server (port 8000)
+bun run start   # Start production server (port 8201)
 bun run lint    # Run ESLint
 ```
 
