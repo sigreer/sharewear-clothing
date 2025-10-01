@@ -129,12 +129,22 @@ if (!global.__MEDUSA_CONFIG_LOGGED__) {
 const localFileProviderOptions = {
   upload_dir: path.join(process.cwd(), 'static'),
   private_upload_dir: path.join(process.cwd(), 'static'),
+  // Use sharewear.local hostname for cross-environment compatibility
+  // Each host configures /etc/hosts to point sharewear.local to appropriate IP
   ...(resolvedLocalFileBackendUrl
     ? { backend_url: resolvedLocalFileBackendUrl }
     : {})
 }
 
 module.exports = defineConfig({
+  admin: {
+    vite: () => ({
+      server: {
+        host: '0.0.0.0',
+        allowedHosts: ['localhost', 'sharewear.local', '.sharewear.local'],
+      },
+    }),
+  },
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
     redisUrl: process.env.REDIS_URL,
@@ -144,9 +154,7 @@ module.exports = defineConfig({
       authCors: process.env.AUTH_CORS!,
       jwtSecret: process.env.JWT_SECRET || "supersecret",
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
-    },
-    // Configure to not use absolute URLs
-    baseUrl: process.env.MEDUSA_BACKEND_URL || ""
+    }
   },
   modules: [
     {
