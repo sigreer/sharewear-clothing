@@ -32,7 +32,8 @@
     "reset": "bun run clean && bun install"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "shadcn": "^3.3.1"
   },
   "keywords": [
     "sharewear",
