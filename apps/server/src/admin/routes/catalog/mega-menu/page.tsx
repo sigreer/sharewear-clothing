@@ -1,5 +1,5 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
-import { LayoutGrid } from "@medusajs/icons"
+import { GridList } from "@medusajs/icons"
 import {
   Badge,
   Button,
@@ -695,7 +695,7 @@ const MegaMenuPage = () => {
                 onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
                   handleGlobalDraftChange("columnsText", event.target.value)
                 }
-                placeholder="[{\n  \"heading\": \"Featured\",\n  \"items\": []\n}]"
+                placeholder='[{ "heading": "Featured", "items": [] }]'
                 rows={10}
               />
               <Text size="small" className="text-ui-fg-muted">
@@ -710,7 +710,7 @@ const MegaMenuPage = () => {
                 onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
                   handleGlobalDraftChange("featuredText", event.target.value)
                 }
-                placeholder="[{\n  \"label\": \"Spotlight\",\n  \"href\": \"/stories\"\n}]"
+                placeholder='[{ "label": "Spotlight", "href": "/stories" }]'
                 rows={6}
               />
             </div>
@@ -888,7 +888,7 @@ const MegaMenuPage = () => {
                     onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
                       handleCategoryDraftChange("columnsText", event.target.value)
                     }
-                    placeholder="[{\n  \"heading\": \"Column\",\n  \"items\": []\n}]"
+                    placeholder='[{ "heading": "Column", "items": [] }]'
                     rows={8}
                   />
                   <Text size="small" className="text-ui-fg-muted">
@@ -956,7 +956,7 @@ const MegaMenuPage = () => {
 
 export const config = defineRouteConfig({
   label: "Mega Menu",
-  icon: LayoutGrid
+  icon: GridList
 })
 
 export default MegaMenuPage

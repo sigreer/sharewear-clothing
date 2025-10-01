@@ -1,5 +1,5 @@
 import { defineWidgetConfig } from "@medusajs/admin-sdk"
-import { ArrowTopRightOnSquare } from "@medusajs/icons"
+import { ArrowUpRightOnBox } from "@medusajs/icons"
 import {
   Badge,
   Button,
@@ -50,6 +50,10 @@ type CategoryDetailResponse = {
   availableLayouts: MegaMenuLayout[]
 }
 
+type DisplayMode = "simple-dropdown" | "columns"
+type ColumnLayout = "image" | "image-with-text" | "subcategory-icons" | "text-and-icons"
+type ColumnBadge = "new" | "offers" | "free-shipping" | "featured"
+
 type CategoriesResponse = {
   categories: Array<{
     id: string
@@ -68,6 +72,12 @@ type DraftState = {
   layout: MegaMenuLayout
   tagline: string
   submenuCategoryIds: string[]
+  // Parent category fields
+  displayMode: DisplayMode | null
+  // Subcategory column fields
+  columnLayout: ColumnLayout | null
+  columnImageUrl: string | null
+  columnBadge: ColumnBadge | null
 }
 
 const formatCategoryLabel = (category: { id: string; name: string | null; handle: string | null }) => {
@@ -93,8 +103,13 @@ const MegaMenuCategoryWidget = ({
   const [draft, setDraft] = useState<DraftState>({
     layout: "default",
     tagline: "",
-    submenuCategoryIds: []
+    submenuCategoryIds: [],
+    displayMode: null,
+    columnLayout: null,
+    columnImageUrl: null,
+    columnBadge: null
   })
+  const [category, setCategory] = useState<CategoryDetailResponse["category"] | null>(null)
   const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>([])
   const [columnsMemo, setColumnsMemo] = useState<MegaMenuColumnConfig[] | null>(null)
   const [featuredMemo, setFeaturedMemo] = useState<MegaMenuFeaturedCardConfig[] | null>(null)
@@ -151,6 +166,7 @@ const MegaMenuCategoryWidget = ({
           return
         }
 
+        setCategory(detail.category)
         setConfig(detail.config)
         setInherited(detail.inherited)
         setDefaults(detail.defaults)
@@ -174,7 +190,11 @@ const MegaMenuCategoryWidget = ({
             ? [
                 ...((detail.config ?? detail.inherited)!.submenuCategoryIds as string[])
               ]
-            : []
+            : [],
+          displayMode: (detail.config ?? detail.inherited)?.displayMode ?? null,
+          columnLayout: (detail.config ?? detail.inherited)?.columnLayout ?? null,
+          columnImageUrl: (detail.config ?? detail.inherited)?.columnImageUrl ?? null,
+          columnBadge: (detail.config ?? detail.inherited)?.columnBadge ?? null
         })
         setCategoryOptions(
           categories.categories.map(option => ({
@@ -267,7 +287,11 @@ const MegaMenuCategoryWidget = ({
         submenuCategoryIds: draft.submenuCategoryIds,
         columns: columnsMemo ?? [],
         featured: featuredMemo ?? [],
-        metadata: metadataMemo ?? null
+        metadata: metadataMemo ?? null,
+        displayMode: draft.displayMode,
+        columnLayout: draft.columnLayout,
+        columnImageUrl: draft.columnImageUrl,
+        columnBadge: draft.columnBadge
       }
 
       const data = await fetchJson<{ config: MegaMenuConfigDTO; preview: MegaMenuContent | null }>(
@@ -367,7 +391,7 @@ const MegaMenuCategoryWidget = ({
             size="small"
             onClick={() => navigate("/catalog/mega-menu")}
           >
-            <ArrowTopRightOnSquare className="h-3.5 w-3.5" />
+            <ArrowUpRightOnBox className="h-3.5 w-3.5" />
             Manage all
           </Button>
         </div>
@@ -381,6 +405,214 @@ const MegaMenuCategoryWidget = ({
         </Text>
       ) : (
         <>
+          {/* Parent categories get display mode selection */}
+          {!category?.parent_category_id && (
+            <div className="grid gap-2">
+              <Text size="small" className="font-medium">
+                Display mode
+              </Text>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant={draft.displayMode === "simple-dropdown" ? "primary" : "secondary"}
+                  size="small"
+                  onClick={() => setDraft(prev => ({ ...prev, displayMode: "simple-dropdown" }))}
+                >
+                  Simple Dropdown
+                </Button>
+                <Button
+                  variant={draft.displayMode === "columns" ? "primary" : "secondary"}
+                  size="small"
+                  onClick={() => setDraft(prev => ({ ...prev, displayMode: "columns" }))}
+                >
+                  Columns
+                </Button>
+              </div>
+              <Text size="xsmall" className="text-ui-fg-muted">
+                Simple dropdown shows a basic hover menu. Columns enables rich customizable content in subcategories.
+              </Text>
+            </div>
+          )}
+
+          {/* Subcategories get column layout configuration */}
+          {category?.parent_category_id && (
+            <>
+              <div className="grid gap-2">
+                <Text size="small" className="font-medium">
+                  Column layout
+                </Text>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={draft.columnLayout === "image" ? "primary" : "secondary"}
+                    size="small"
+                    onClick={() => setDraft(prev => ({ ...prev, columnLayout: "image" }))}
+                  >
+                    Image
+                  </Button>
+                  <Button
+                    variant={draft.columnLayout === "image-with-text" ? "primary" : "secondary"}
+                    size="small"
+                    onClick={() => setDraft(prev => ({ ...prev, columnLayout: "image-with-text" }))}
+                  >
+                    Image with Text
+                  </Button>
+                  <Button
+                    variant={draft.columnLayout === "subcategory-icons" ? "primary" : "secondary"}
+                    size="small"
+                    onClick={() => setDraft(prev => ({ ...prev, columnLayout: "subcategory-icons" }))}
+                  >
+                    Subcategory Icons
+                  </Button>
+                  <Button
+                    variant={draft.columnLayout === "text-and-icons" ? "primary" : "secondary"}
+                    size="small"
+                    onClick={() => setDraft(prev => ({ ...prev, columnLayout: "text-and-icons" }))}
+                  >
+                    Text & Icons
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <Text size="small" className="font-medium">
+                  Column image
+                </Text>
+                <div className="grid gap-3">
+                  {draft.columnImageUrl && (
+                    <div className="relative aspect-video w-full max-w-sm overflow-hidden rounded-lg border border-ui-border-base">
+                      <img
+                        src={draft.columnImageUrl}
+                        alt="Column preview"
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setDraft(prev => ({ ...prev, columnImageUrl: null }))}
+                        className="absolute right-2 top-2 rounded-full bg-ui-bg-base p-1 shadow-md transition-colors hover:bg-ui-bg-base-hover"
+                      >
+                        <span className="text-ui-fg-subtle">×</span>
+                      </button>
+                    </div>
+                  )}
+                  <Input
+                    value={draft.columnImageUrl ?? ""}
+                    onChange={event => setDraft(prev => ({ ...prev, columnImageUrl: event.target.value || null }))}
+                    placeholder="Paste image URL or use file input below"
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      id="column-image-upload"
+                      onChange={async (event) => {
+                        const file = event.target.files?.[0]
+                        if (!file) return
+
+                        const formData = new FormData()
+                        formData.append('files', file)
+
+                        try {
+                          const response = await fetch('/admin/uploads', {
+                            method: 'POST',
+                            body: formData
+                          })
+
+                          if (response.ok) {
+                            const data = await response.json()
+                            const uploadedUrl = data.uploads?.[0]?.url
+                            if (uploadedUrl) {
+                              setDraft(prev => ({ ...prev, columnImageUrl: uploadedUrl }))
+                              toast.success('Image uploaded successfully')
+                            }
+                          } else {
+                            toast.error('Failed to upload image')
+                          }
+                        } catch (error) {
+                          toast.error('Error uploading image')
+                          console.error('Upload error:', error)
+                        }
+                      }}
+                    />
+                    <label htmlFor="column-image-upload">
+                      <Button
+                        variant="secondary"
+                        size="small"
+                        type="button"
+                        onClick={() => document.getElementById('column-image-upload')?.click()}
+                      >
+                        Upload Image
+                      </Button>
+                    </label>
+                    {category?.id && (
+                      <Button
+                        variant="secondary"
+                        size="small"
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const response = await fetchJson<{ products: Array<{ id: string; thumbnail?: string; images?: Array<{ url: string }> }> }>(
+                              `/admin/products?category_id[]=${category.id}&fields=id,thumbnail,images&limit=20`
+                            )
+
+                            const imageUrls = response.products
+                              .flatMap(p => {
+                                const urls: string[] = []
+                                if (p.thumbnail) urls.push(p.thumbnail)
+                                if (p.images) urls.push(...p.images.map(img => img.url))
+                                return urls
+                              })
+                              .filter((url): url is string => Boolean(url))
+
+                            if (imageUrls.length > 0) {
+                              // For now, just use the first image. In a real implementation,
+                              // you'd show a modal with all images to choose from
+                              setDraft(prev => ({ ...prev, columnImageUrl: imageUrls[0] }))
+                              toast.success('Selected first product image')
+                            } else {
+                              toast.info('No product images found in this category')
+                            }
+                          } catch (error) {
+                            toast.error('Failed to load product images')
+                            console.error('Error loading product images:', error)
+                          }
+                        }}
+                      >
+                        Use Product Image
+                      </Button>
+                    )}
+                  </div>
+                  <Text size="xsmall" className="text-ui-fg-muted">
+                    Upload a new image, paste a URL, or select from product images in this category
+                  </Text>
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <Text size="small" className="font-medium">
+                  Badge
+                </Text>
+                <Select
+                  value={draft.columnBadge ?? "none"}
+                  onValueChange={value => setDraft(prev => ({ ...prev, columnBadge: value === "none" ? null : value as ColumnBadge }))}
+                >
+                  <Select.Trigger>
+                    <Select.Value />
+                  </Select.Trigger>
+                  <Select.Content>
+                    <Select.Item value="none">None</Select.Item>
+                    <Select.Item value="new">New</Select.Item>
+                    <Select.Item value="offers">Offers</Select.Item>
+                    <Select.Item value="free-shipping">Free Shipping</Select.Item>
+                    <Select.Item value="featured">Featured</Select.Item>
+                  </Select.Content>
+                </Select>
+              </div>
+            </>
+          )}
+
           <div className="flex flex-wrap gap-2">
             {(Object.keys(LAYOUT_LABELS) as MegaMenuLayout[]).map(layout => (
               <Button
