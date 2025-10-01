@@ -30,7 +30,49 @@ git fetch origin
 git rebase origin/main
 ```
 - Only rebase if no uncommitted changes are present.
+f
+- Squash commits if appropriate before final merge to keep history clean.
 
+## When Submitting Changes
+
+- Agents should indicate the feature is complete by:
+ - Printing a message like: Feature branch ready: feature/<feature-name>
+ - Optionally generating a summary of changes for review.
+
+## When Creating a Batch of Commits
+
+- Use git diffs to inspect changes
+- Prefix all commits with *FEATURE*, *LINT*, *REFACTOR*, *FIX*, *TEST*, *CI*, *DOCS* or *BACKUP*
+- Group files into commits based on the issue - 'Atomic commits'
+
+## Medusa-Specific Workflow
+
+### Repository Structure
+
+```
+origin     -> Your private repository (GitHub/GitLab)
+upstream   -> Official Medusa starter (https://github.com/medusajs/medusa-starter.git)
+```
+
+### Initial Setup
+
+1. **Run the setup script:**
+   ```bash
+   ./setup-git-remotes.sh
+   ```
+
+2. **Push to your private repository:**
+   ```bash
+   git push -u origin main
+   ```
+
+### Custom Modules and Customizations
+
+Keep all customizations in clearly identifiable locations:
+- `src/modules/` - Custom modules (like Mailtrap integration)
+- `src/api/` - Custom API routes
+- `src/workflows/` - Custom workflows
+- Root utilities like `change-password.js`
 ## Commit Guidelines
 
 - Use clear, descriptive commit messages:
