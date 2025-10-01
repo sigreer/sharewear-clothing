@@ -18,6 +18,9 @@ export type MegaMenuColumn = {
   description?: string
   imageUrl?: string
   items: MegaMenuLink[]
+  columnLayout?: 'image' | 'image-with-text' | 'subcategory-icons' | 'text-and-icons'
+  badge?: 'new' | 'offers' | 'free-shipping' | 'featured'
+  categoryId?: string
 }
 
 export type MegaMenuFeaturedCard = {
@@ -41,7 +44,23 @@ interface MegaMenuPanelProps {
   onNavigate?: () => void
 }
 
+const BADGE_STYLES = {
+  'new': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+  'offers': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+  'free-shipping': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  'featured': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+}
+
 const MegaMenuPanel: React.FC<MegaMenuPanelProps> = ({ content, onNavigate }) => {
+  const renderColumnBadge = (badge?: string) => {
+    if (!badge || !(badge in BADGE_STYLES)) return null
+    return (
+      <span className={`text-xs font-semibold px-2 py-1 rounded ${BADGE_STYLES[badge as keyof typeof BADGE_STYLES]}`}>
+        {badge.replace('-', ' ').toUpperCase()}
+      </span>
+    )
+  }
+
   const renderDefaultLayout = () => (
     <div className="flex flex-col gap-6">
       <div className="flex-1">
@@ -58,7 +77,15 @@ const MegaMenuPanel: React.FC<MegaMenuPanelProps> = ({ content, onNavigate }) =>
                 ease: [0.16, 1, 0.3, 1]
               }}
             >
-              {column.imageUrl && (
+              {/* Render column badge if present */}
+              {column.badge && (
+                <div className="mb-2">
+                  {renderColumnBadge(column.badge)}
+                </div>
+              )}
+
+              {/* Render image based on columnLayout */}
+              {column.imageUrl && (column.columnLayout === 'image' || column.columnLayout === 'image-with-text' || !column.columnLayout) && (
                 <div className="aspect-[4/3] w-full overflow-hidden rounded-lg">
                   <img
                     src={column.imageUrl}
@@ -69,25 +96,31 @@ const MegaMenuPanel: React.FC<MegaMenuPanelProps> = ({ content, onNavigate }) =>
               )}
 
               <div className="space-y-2">
-                <p className="text-base font-semibold text-foreground">
+                <p className="text-base font-semibold text-foreground flex items-center gap-2">
                   {column.heading}
                 </p>
-                {column.description && (
+                {column.description && (column.columnLayout === 'image-with-text' || column.columnLayout === 'text-and-icons' || !column.columnLayout) && (
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {column.description}
                   </p>
                 )}
               </div>
 
-              <ul className="space-y-3">
+              <ul className={column.columnLayout === 'subcategory-icons' ? 'grid grid-cols-2 gap-3' : 'space-y-3'}>
                 {column.items.map((item) => (
                   <li key={item.label}>
                     <LocalizedClientLink
                       href={item.href}
-                      className="group flex gap-2 rounded-lg p-2 transition-colors hover:bg-muted/70"
+                      className={`group flex gap-2 rounded-lg p-2 transition-colors hover:bg-muted/70 ${
+                        column.columnLayout === 'subcategory-icons' ? 'flex-col items-center text-center' : ''
+                      }`}
                       onClick={onNavigate}
                     >
-                      {item.icon ? (
+                      {column.columnLayout === 'subcategory-icons' && item.thumbnailUrl ? (
+                        <div className="w-12 h-12 rounded-full overflow-hidden bg-muted">
+                          <img src={item.thumbnailUrl} alt={item.label} className="w-full h-full object-cover" />
+                        </div>
+                      ) : item.icon ? (
                         <span className="mt-0.5 text-base" aria-hidden>{item.icon}</span>
                       ) : null}
                       <span className="flex-1">
@@ -99,7 +132,7 @@ const MegaMenuPanel: React.FC<MegaMenuPanelProps> = ({ content, onNavigate }) =>
                             </span>
                           ) : null}
                         </span>
-                        {item.description ? (
+                        {item.description && column.columnLayout !== 'subcategory-icons' ? (
                           <span className="mt-0.5 block text-sm text-muted-foreground leading-relaxed">
                             {item.description}
                           </span>
