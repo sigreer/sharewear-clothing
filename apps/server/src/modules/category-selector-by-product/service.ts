@@ -177,6 +177,7 @@ class CategorySelectorByProductService extends MedusaService({
       selected_product_id: null,
       selected_product_image_id: null,
       random_product_ids: null,
+      deleted_at: null,
       metadata
     }
 
@@ -210,7 +211,7 @@ class CategorySelectorByProductService extends MedusaService({
         )
       }
 
-      base.random_product_ids = pool
+      base.random_product_ids = pool as any
     }
 
     if (data.mode === "custom_image") {
@@ -236,7 +237,7 @@ class CategorySelectorByProductService extends MedusaService({
         ? (entity.random_product_ids as string[])
         : null,
       metadata,
-      presentation: metadata.presentation,
+      presentation: metadata.presentation ?? {} as any,
       created_at: entity.created_at ?? null,
       updated_at: entity.updated_at ?? null
     }

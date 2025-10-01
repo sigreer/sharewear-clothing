@@ -54,7 +54,6 @@ export const collectCategoryIdsFromConfig = (
   const ids = new Set<string>()
 
   ensureArray<string>(
-    // @ts-expect-error - allow snake_case for backwards compatibility
     (config as any).submenu_category_ids ?? config.submenuCategoryIds
   ).forEach(id => {
     if (typeof id === "string" && id.trim().length) {
@@ -63,7 +62,6 @@ export const collectCategoryIdsFromConfig = (
   })
 
   collectFromColumns(
-    // @ts-expect-error - allow snake_case for backwards compatibility
     (config as any).columns ?? []
   ).forEach(id => ids.add(id))
 
@@ -84,7 +82,17 @@ export const pickMegaMenuPayload = (
     featured,
     submenuCategoryIds,
     submenu_category_ids,
-    metadata
+    metadata,
+    displayMode,
+    display_mode,
+    columnLayout,
+    column_layout,
+    columnImageUrl,
+    column_image_url,
+    columnImageSource,
+    column_image_source,
+    columnBadge,
+    column_badge
   } = body as Record<string, unknown>
 
   return {
@@ -95,6 +103,11 @@ export const pickMegaMenuPayload = (
     submenuCategoryIds: ensureArray<string>(
       submenuCategoryIds ?? submenu_category_ids
     ),
-    metadata: metadata as MegaMenuConfigInput["metadata"]
+    metadata: metadata as MegaMenuConfigInput["metadata"],
+    displayMode: (displayMode ?? display_mode) as MegaMenuConfigInput["displayMode"],
+    columnLayout: (columnLayout ?? column_layout) as MegaMenuConfigInput["columnLayout"],
+    columnImageUrl: (columnImageUrl ?? column_image_url) as MegaMenuConfigInput["columnImageUrl"],
+    columnImageSource: (columnImageSource ?? column_image_source) as MegaMenuConfigInput["columnImageSource"],
+    columnBadge: (columnBadge ?? column_badge) as MegaMenuConfigInput["columnBadge"]
   }
 }

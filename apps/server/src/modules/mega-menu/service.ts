@@ -187,11 +187,11 @@ export default class MegaMenuService extends MedusaService({
     const configMap = await this.getConfigMap(categoryIds)
     const globalConfig = await this.getGlobalConfig()
 
-    const apply = (
+    const apply = async (
       items: DynamicCategoryMenuItem[]
-    ): MegaMenuNavigationItem[] => {
-      return items.map(item => {
-        const megaMenu = this.resolveMegaMenuContent(
+    ): Promise<MegaMenuNavigationItem[]> => {
+      return Promise.all(items.map(async item => {
+        const megaMenu = await this.resolveMegaMenuContent(
           item.id,
           configMap,
           globalConfig,
@@ -200,44 +200,45 @@ export default class MegaMenuService extends MedusaService({
 
         return {
           ...item,
-          children: apply(item.children ?? []),
+          children: await apply(item.children ?? []),
           megaMenu
         }
-      })
+      }))
     }
 
     return apply(navigation)
   }
 
-  protected resolveMegaMenuContent(
+  protected async resolveMegaMenuContent(
     categoryId: string,
     configMap: Map<string, MegaMenuConfigDTO>,
     globalConfig: MegaMenuConfigDTO | null,
     categoryMap: Map<string, ProductCategoryDTO>
-  ): MegaMenuContent | null {
+  ): Promise<MegaMenuContent | null> {
     const config = configMap.get(categoryId) ?? globalConfig
 
     if (!config) {
       return null
     }
 
-    return this.buildMegaMenuContent(config, categoryMap)
+    return this.buildMegaMenuContent(config, categoryMap, configMap)
   }
 
-  protected buildMegaMenuContent(
+  protected async buildMegaMenuContent(
     config: MegaMenuConfigDTO,
-    categoryMap: Map<string, ProductCategoryDTO>
-  ): MegaMenuContent | null {
+    categoryMap: Map<string, ProductCategoryDTO>,
+    configMap: Map<string, MegaMenuConfigDTO>
+  ): Promise<MegaMenuContent | null> {
     const layout = config.layout || this.options_.defaultLayout
     const tagline = normalizeNullableString(config.tagline) ?? this.options_.defaultTagline
 
     const manualColumns = this.buildManualColumns(config.columns, categoryMap)
-    const autoItems = this.buildAutomaticItems(config.submenuCategoryIds, categoryMap)
+    const autoItems = await this.buildAutomaticItems(config.submenuCategoryIds, categoryMap, configMap)
 
     let columns: MegaMenuColumn[] = manualColumns
 
     if (!columns.length && autoItems.length) {
-      columns = this.buildAutomaticColumns(autoItems, layout, config.metadata)
+      columns = await this.buildAutomaticColumns(autoItems, layout, config.metadata, configMap, config.submenuCategoryIds)
     }
 
     const featured = this.buildFeatured(config.featured)
@@ -280,7 +281,7 @@ export default class MegaMenuService extends MedusaService({
           items
         }
       })
-      .filter((column): column is MegaMenuColumn => Boolean(column && column.items.length))
+      .filter(column => column !== null) as MegaMenuColumn[]
   }
 
   protected buildFeatured(
@@ -308,13 +309,14 @@ export default class MegaMenuService extends MedusaService({
           imageUrl: normalizeNullableString(card?.imageUrl) ?? undefined
         }
       })
-      .filter((card): card is MegaMenuFeaturedCard => Boolean(card))
+      .filter(card => card !== null) as MegaMenuFeaturedCard[]
   }
 
-  protected buildAutomaticItems(
+  protected async buildAutomaticItems(
     categoryIds: string[] | undefined,
-    categoryMap: Map<string, ProductCategoryDTO>
-  ): MegaMenuLink[] {
+    categoryMap: Map<string, ProductCategoryDTO>,
+    configMap?: Map<string, MegaMenuConfigDTO>
+  ): Promise<MegaMenuLink[]> {
     if (!Array.isArray(categoryIds)) {
       return []
     }
@@ -345,21 +347,28 @@ export default class MegaMenuService extends MedusaService({
         continue
       }
 
+      // Get subcategory-specific configuration if available
+      const subcategoryConfig = configMap?.get(categoryId)
+
       items.push({
         label,
         href,
-        description: normalizeNullableString(category.description) ?? undefined
+        description: normalizeNullableString(category.description) ?? undefined,
+        badge: subcategoryConfig?.columnBadge ?? undefined,
+        thumbnailUrl: subcategoryConfig?.columnImageUrl ?? undefined
       })
     }
 
     return items
   }
 
-  protected buildAutomaticColumns(
+  protected async buildAutomaticColumns(
     items: MegaMenuLink[],
     layout: MegaMenuLayout,
-    metadata: Record<string, unknown> | null
-  ): MegaMenuColumn[] {
+    metadata: Record<string, unknown> | null,
+    configMap?: Map<string, MegaMenuConfigDTO>,
+    categoryIds?: string[]
+  ): Promise<MegaMenuColumn[]> {
     if (!items.length) {
       return []
     }
@@ -373,9 +382,17 @@ export default class MegaMenuService extends MedusaService({
 
       for (let index = 0; index < items.length; index += AUTO_ITEMS_CHUNK_SIZE) {
         const chunk = items.slice(index, index + AUTO_ITEMS_CHUNK_SIZE)
+
+        // If we have category IDs, get the config for the first item in the chunk
+        const categoryId = categoryIds?.[index]
+        const subcategoryConfig = categoryId ? configMap?.get(categoryId) : undefined
+
         columns.push({
           heading: headingCandidate ?? undefined,
-          items: chunk
+          items: chunk,
+          columnLayout: subcategoryConfig?.columnLayout ?? undefined,
+          badge: subcategoryConfig?.columnBadge ?? undefined,
+          categoryId
         })
       }
 
@@ -531,12 +548,18 @@ export default class MegaMenuService extends MedusaService({
       category_id: categoryId,
       layout,
       tagline: normalizeNullableString(data.tagline),
-      columns: this.normalizeColumns(data.columns),
-      featured: this.normalizeFeatured(data.featured),
+      columns: this.normalizeColumns(data.columns) as any,
+      featured: this.normalizeFeatured(data.featured) as any,
       submenu_category_ids: this.normalizeSubmenuCategoryIds(
         data.submenuCategoryIds
-      ),
-      metadata: this.normalizeMetadata(data.metadata)
+      ) as any,
+      metadata: this.normalizeMetadata(data.metadata),
+      display_mode: normalizeNullableString(data.displayMode) as any,
+      column_layout: normalizeNullableString(data.columnLayout) as any,
+      column_image_url: normalizeNullableString(data.columnImageUrl),
+      column_image_source: normalizeNullableString(data.columnImageSource) as any,
+      column_badge: normalizeNullableString(data.columnBadge) as any,
+      deleted_at: null
     }
   }
 
@@ -643,6 +666,11 @@ export default class MegaMenuService extends MedusaService({
       metadata: isRecord(entity.metadata)
         ? (entity.metadata as Record<string, unknown>)
         : null,
+      displayMode: normalizeNullableString((entity as any).display_mode) as any,
+      columnLayout: normalizeNullableString((entity as any).column_layout) as any,
+      columnImageUrl: normalizeNullableString((entity as any).column_image_url),
+      columnImageSource: normalizeNullableString((entity as any).column_image_source) as any,
+      columnBadge: normalizeNullableString((entity as any).column_badge) as any,
       createdAt: entity.created_at,
       updatedAt: entity.updated_at
     }
@@ -656,21 +684,25 @@ export default class MegaMenuService extends MedusaService({
     }
   }
 
-  buildPreview(
+  async buildPreview(
     config: MegaMenuConfigDTO | null,
     categories: ProductCategoryDTO[]
-  ): MegaMenuContent | null {
+  ): Promise<MegaMenuContent | null> {
     if (!config) {
       return null
     }
 
-    const map = new Map<string, ProductCategoryDTO>()
+    const categoryMap = new Map<string, ProductCategoryDTO>()
     for (const category of categories) {
       if (category?.id) {
-        map.set(category.id, category)
+        categoryMap.set(category.id, category)
       }
     }
 
-    return this.buildMegaMenuContent(config, map)
+    // Collect all category IDs from the config to fetch their configurations
+    const categoryIds = config.submenuCategoryIds ?? []
+    const configMap = await this.getConfigMap(categoryIds)
+
+    return this.buildMegaMenuContent(config, categoryMap, configMap)
   }
 }

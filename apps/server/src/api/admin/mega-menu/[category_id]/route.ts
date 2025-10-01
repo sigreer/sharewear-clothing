@@ -101,7 +101,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     effectiveConfig
   )
 
-  const preview = megaMenuService.buildPreview(effectiveConfig, categories)
+  const preview = await megaMenuService.buildPreview(effectiveConfig, categories)
 
   res.json({
     category: {
@@ -147,7 +147,7 @@ export async function PUT(req: MedusaRequest, res: MedusaResponse) {
     updated
   )
 
-  const preview = megaMenuService.buildPreview(updated, categories)
+  const preview = await megaMenuService.buildPreview(updated, categories)
 
   res.json({
     categoryId,

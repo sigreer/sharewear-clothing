@@ -1,4 +1,8 @@
 export type MegaMenuLayout = "default" | "thumbnail-grid"
+export type MegaMenuDisplayMode = "simple-dropdown" | "columns"
+export type MegaMenuColumnLayout = "image" | "image-with-text" | "subcategory-icons" | "text-and-icons"
+export type MegaMenuColumnImageSource = "upload" | "product"
+export type MegaMenuColumnBadge = "new" | "offers" | "free-shipping" | "featured"
 
 export type MegaMenuLinkConfig = {
   label?: string | null
@@ -36,6 +40,13 @@ export type MegaMenuConfigInput = {
   featured?: MegaMenuFeaturedCardConfig[] | null
   submenuCategoryIds?: string[] | null
   metadata?: Record<string, unknown> | null
+  // Parent category configuration
+  displayMode?: MegaMenuDisplayMode | null
+  // Subcategory column configuration
+  columnLayout?: MegaMenuColumnLayout | null
+  columnImageUrl?: string | null
+  columnImageSource?: MegaMenuColumnImageSource | null
+  columnBadge?: MegaMenuColumnBadge | null
 }
 
 export type MegaMenuConfigDTO = {
@@ -47,6 +58,13 @@ export type MegaMenuConfigDTO = {
   featured: MegaMenuFeaturedCardConfig[]
   submenuCategoryIds: string[]
   metadata: Record<string, unknown> | null
+  // Parent category configuration
+  displayMode: MegaMenuDisplayMode | null
+  // Subcategory column configuration
+  columnLayout: MegaMenuColumnLayout | null
+  columnImageUrl: string | null
+  columnImageSource: MegaMenuColumnImageSource | null
+  columnBadge: MegaMenuColumnBadge | null
   createdAt: Date
   updatedAt: Date
 }
@@ -65,6 +83,10 @@ export type MegaMenuColumn = {
   description?: string
   imageUrl?: string
   items: MegaMenuLink[]
+  // Subcategory-specific column configuration
+  columnLayout?: MegaMenuColumnLayout
+  badge?: MegaMenuColumnBadge
+  categoryId?: string
 }
 
 export type MegaMenuFeaturedCard = {
