@@ -24,17 +24,31 @@
           "nullable": false,
           "mappedType": "text"
         },
-        "layout": {
-          "name": "layout",
+        "default_menu_layout": {
+          "name": "default_menu_layout",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": false,
-          "default": "'default'",
+          "nullable": true,
           "enumItems": [
-            "default",
-            "thumbnail-grid"
+            "no-menu",
+            "simple-dropdown",
+            "rich-columns"
+          ],
+          "mappedType": "enum"
+        },
+        "menu_layout": {
+          "name": "menu_layout",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "enumItems": [
+            "no-menu",
+            "simple-dropdown",
+            "rich-columns"
           ],
           "mappedType": "enum"
         },
@@ -83,33 +97,32 @@
           "nullable": true,
           "mappedType": "json"
         },
-        "display_mode": {
-          "name": "display_mode",
-          "type": "text",
+        "display_as_column": {
+          "name": "display_as_column",
+          "type": "boolean",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
-          "enumItems": [
-            "simple-dropdown",
-            "columns"
-          ],
-          "mappedType": "enum"
+          "mappedType": "boolean"
         },
-        "column_layout": {
-          "name": "column_layout",
+        "column_title": {
+          "name": "column_title",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
-          "enumItems": [
-            "image",
-            "image-with-text",
-            "subcategory-icons",
-            "text-and-icons"
-          ],
-          "mappedType": "enum"
+          "mappedType": "text"
+        },
+        "column_description": {
+          "name": "column_description",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
         },
         "column_image_url": {
           "name": "column_image_url",
@@ -145,6 +158,93 @@
             "offers",
             "free-shipping",
             "featured"
+          ],
+          "mappedType": "enum"
+        },
+        "icon": {
+          "name": "icon",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "thumbnail_url": {
+          "name": "thumbnail_url",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "subtitle": {
+          "name": "subtitle",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "excluded_from_menu": {
+          "name": "excluded_from_menu",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        },
+        "layout": {
+          "name": "layout",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "enumItems": [
+            "default",
+            "thumbnail-grid"
+          ],
+          "mappedType": "enum"
+        },
+        "display_mode": {
+          "name": "display_mode",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "enumItems": [
+            "simple-dropdown",
+            "columns"
+          ],
+          "mappedType": "enum"
+        },
+        "column_layout": {
+          "name": "column_layout",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "enumItems": [
+            "image",
+            "image-with-text",
+            "subcategory-icons",
+            "text-and-icons"
           ],
           "mappedType": "enum"
         },
