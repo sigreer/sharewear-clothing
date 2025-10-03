@@ -3,953 +3,1000 @@ import { GridList } from "@medusajs/icons"
 import {
   Badge,
   Button,
+  Checkbox,
   Container,
-  FocusModal,
   Heading,
   Input,
+  Label,
   Select,
-  Skeleton,
   Text,
-  Textarea,
   toast
 } from "@medusajs/ui"
 import {
-  ChangeEvent,
   useCallback,
   useEffect,
-  useMemo,
   useState
 } from "react"
 import type {
-  MegaMenuColumnConfig,
   MegaMenuConfigDTO,
-  MegaMenuContent,
-  MegaMenuFeaturedCardConfig,
   MegaMenuLayout
 } from "../../../../modules/mega-menu"
 
-const AVAILABLE_LAYOUTS: MegaMenuLayout[] = ["default", "thumbnail-grid"]
+const MENU_LAYOUTS: { value: MegaMenuLayout; label: string; description: string }[] = [
+  {
+    value: "no-menu",
+    label: "No Menu",
+    description: "Category has no dropdown menu"
+  },
+  {
+    value: "simple-dropdown",
+    label: "Simple Dropdown",
+    description: "Basic text-based dropdown list"
+  },
+  {
+    value: "rich-columns",
+    label: "Rich Columns",
+    description: "Multi-column layout with images and descriptions"
+  }
+]
 
 type MegaMenuDefaults = {
-  layout: MegaMenuLayout
-  tagline: string | null
+  defaultMenuLayout: MegaMenuLayout
   baseHref: string
 }
 
 type GlobalResponse = {
   config: MegaMenuConfigDTO | null
-  preview: MegaMenuContent | null
   defaults: MegaMenuDefaults
 }
 
-type CategoriesResponse = {
-  categories: CategorySummary[]
-  total: number
-  availableLayouts: MegaMenuLayout[]
-  defaults: MegaMenuDefaults
-}
-
-type CategorySummary = {
+type Category = {
   id: string
-  name: string | null
-  handle: string | null
+  name: string
+  handle: string
   description: string | null
   parent_category_id: string | null
-  rank: number | null | undefined
-  config: MegaMenuConfigDTO | null
+  rank: number
 }
 
-type CategoryDetailResponse = {
-  category: {
-    id: string
-    name: string | null
-    handle: string | null
-    description: string | null
-    parent_category_id: string | null
-    rank: number | null | undefined
-  }
+type CategoryWithConfig = Category & {
+  config: MegaMenuConfigDTO | null
+  children?: CategoryWithConfig[]
+  level?: number
+}
+
+type CategoryConfigResponse = {
+  categoryId: string
   config: MegaMenuConfigDTO | null
   inherited: MegaMenuConfigDTO | null
-  preview: MegaMenuContent | null
   defaults: MegaMenuDefaults
-  availableLayouts: MegaMenuLayout[]
-}
-
-type CategoryUpdateResponse = {
-  categoryId: string
-  config: MegaMenuConfigDTO
-  preview: MegaMenuContent | null
-}
-
-type GlobalDraft = {
-  layout: MegaMenuLayout
-  tagline: string
-  columnsText: string
-  featuredText: string
+  availableMenuLayouts: MegaMenuLayout[]
 }
 
 type GlobalState = {
   loading: boolean
   saving: boolean
   config: MegaMenuConfigDTO | null
-  preview: MegaMenuContent | null
   defaults: MegaMenuDefaults
-  draft: GlobalDraft
+  defaultMenuLayout: MegaMenuLayout
 }
 
-type CategoryDraft = {
-  layout: MegaMenuLayout
+type CategoryState = {
+  loading: boolean
+  loadingCategories: boolean
+  saving: boolean
+  categories: CategoryWithConfig[]
+  selectedCategoryId: string | null
+  selectedCategory: CategoryWithConfig | null
+  config: MegaMenuConfigDTO | null
+  inherited: MegaMenuConfigDTO | null
+  defaults: MegaMenuDefaults
+  // Form fields
+  menuLayout: MegaMenuLayout | null
+  displayAsColumn: boolean
+  columnTitle: string
+  columnDescription: string
+  columnImageUrl: string
+  columnBadge: string
+  icon: string
+  thumbnailUrl: string
+  title: string
+  subtitle: string
+  excludedFromMenu: boolean
   tagline: string
-  submenuCategoryIds: string[]
   columnsText: string
   featuredText: string
 }
 
-type CategoryModalState = {
-  open: boolean
-  loading: boolean
-  saving: boolean
-  category: CategorySummary | null
-  draft: CategoryDraft
-  preview: MegaMenuContent | null
-  inherited: MegaMenuConfigDTO | null
-  config: MegaMenuConfigDTO | null
-  defaults: MegaMenuDefaults
-  error: string | null
+// Category Tree Component
+interface CategoryTreeProps {
+  categories: CategoryWithConfig[]
+  selectedId: string | null
+  onSelect: (id: string) => void
+  level?: number
 }
 
-const serializeArray = <T,>(value: T[] | null | undefined): string => {
-  if (!Array.isArray(value) || !value.length) {
-    return ""
-  }
-  try {
-    return JSON.stringify(value, null, 2)
-  } catch (error) {
-    return ""
-  }
+const CategoryTreeItem = ({ category, selectedId, onSelect, level = 0 }: {
+  category: CategoryWithConfig
+  selectedId: string | null
+  onSelect: (id: string) => void
+  level?: number
+}) => {
+  const [isExpanded, setIsExpanded] = useState(true)
+  const hasChildren = category.children && category.children.length > 0
+  const isSelected = category.id === selectedId
+  const hasConfig = Boolean(category.config)
+
+  return (
+    <div className="w-full">
+      <div
+        className={`flex items-center gap-x-2 py-2 px-3 rounded-md cursor-pointer transition-colors ${
+          isSelected
+            ? 'bg-ui-bg-base-pressed'
+            : 'hover:bg-ui-bg-base-hover'
+        }`}
+        style={{ paddingLeft: `${(level * 16) + 12}px` }}
+        onClick={() => onSelect(category.id)}
+      >
+        {hasChildren && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setIsExpanded(!isExpanded)
+            }}
+            className="flex items-center justify-center w-4 h-4"
+          >
+            <span className="text-ui-fg-subtle">
+              {isExpanded ? '▼' : '▶'}
+            </span>
+          </button>
+        )}
+        {!hasChildren && <div className="w-4" />}
+        <span className={`flex-1 text-sm ${isSelected ? 'font-semibold' : 'font-medium'}`}>
+          {category.name}
+        </span>
+        {hasConfig && (
+          <Badge size="small" color="green">Custom</Badge>
+        )}
+      </div>
+      {hasChildren && isExpanded && (
+        <div>
+          {category.children!.map((child) => (
+            <CategoryTreeItem
+              key={child.id}
+              category={child}
+              selectedId={selectedId}
+              onSelect={onSelect}
+              level={level + 1}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
-const createGlobalDraft = (
-  config: MegaMenuConfigDTO | null,
-  defaults: MegaMenuDefaults
-): GlobalDraft => ({
-  layout: config?.layout ?? defaults.layout,
-  tagline: config?.tagline ?? defaults.tagline ?? "",
-  columnsText: serializeArray(config?.columns),
-  featuredText: serializeArray(config?.featured)
-})
-
-const createCategoryDraft = (
-  config: MegaMenuConfigDTO | null,
-  defaults: MegaMenuDefaults
-): CategoryDraft => ({
-  layout: config?.layout ?? defaults.layout,
-  tagline: config?.tagline ?? defaults.tagline ?? "",
-  submenuCategoryIds: Array.isArray(config?.submenuCategoryIds)
-    ? [...config!.submenuCategoryIds]
-    : [],
-  columnsText: serializeArray(config?.columns),
-  featuredText: serializeArray(config?.featured)
-})
-
-const createInitialGlobalState = (): GlobalState => ({
-  loading: true,
-  saving: false,
-  config: null,
-  preview: null,
-  defaults: {
-    layout: "default",
-    tagline: null,
-    baseHref: ""
-  },
-  draft: {
-    layout: "default",
-    tagline: "",
-    columnsText: "",
-    featuredText: ""
-  }
-})
-
-const createCategoryModalState = (): CategoryModalState => ({
-  open: false,
-  loading: false,
-  saving: false,
-  category: null,
-  draft: {
-    layout: "default",
-    tagline: "",
-    submenuCategoryIds: [],
-    columnsText: "",
-    featuredText: ""
-  },
-  preview: null,
-  inherited: null,
-  config: null,
-  defaults: {
-    layout: "default",
-    tagline: null,
-    baseHref: ""
-  },
-  error: null
-})
-
-const formatCategoryLabel = (category: CategorySummary | CategoryDetailResponse["category"]): string => {
-  const parts = [category.name, category.handle].filter((value): value is string => Boolean(value))
-  if (parts.length) {
-    return parts.join(" · ")
-  }
-  return category.id
-}
-
-const parseJsonArray = <T,>(
-  label: string,
-  value: string
-): T[] | null => {
-  const trimmed = value.trim()
-
-  if (!trimmed.length) {
-    return []
-  }
-
-  try {
-    const parsed = JSON.parse(trimmed)
-
-    if (!Array.isArray(parsed)) {
-      throw new Error(`${label} must be a JSON array.`)
-    }
-
-    return parsed as T[]
-  } catch (error) {
-    toast.error(
-      error instanceof Error
-        ? error.message
-        : `${label} must be a valid JSON array.`
-    )
-    return null
-  }
-}
-
-const fetchInitWithJson = (init?: RequestInit & { skipJsonHeader?: boolean }) => {
-  if (!init) {
-    return {}
-  }
-
-  const headers = new Headers(init.headers)
-
-  if (!init.skipJsonHeader) {
-    headers.set("Content-Type", "application/json")
-  }
-
-  return {
-    ...init,
-    headers
-  }
+const CategoryTree = ({ categories, selectedId, onSelect }: CategoryTreeProps) => {
+  return (
+    <div className="flex flex-col gap-y-1">
+      {categories.map((category) => (
+        <CategoryTreeItem
+          key={category.id}
+          category={category}
+          selectedId={selectedId}
+          onSelect={onSelect}
+          level={0}
+        />
+      ))}
+    </div>
+  )
 }
 
 const MegaMenuPage = () => {
-  const [globalState, setGlobalState] = useState<GlobalState>(
-    createInitialGlobalState
-  )
-  const [categoryState, setCategoryState] = useState<{
-    loading: boolean
-    error: string | null
-    categories: CategorySummary[]
-  }>({
+  // Global state
+  const [globalState, setGlobalState] = useState<GlobalState>({
     loading: true,
-    error: null,
-    categories: []
+    saving: false,
+    config: null,
+    defaults: {
+      defaultMenuLayout: "simple-dropdown",
+      baseHref: "/store?category="
+    },
+    defaultMenuLayout: "simple-dropdown"
   })
-  const [categoryModal, setCategoryModal] = useState<CategoryModalState>(
-    createCategoryModalState
-  )
 
-  const fetchJson = useCallback(async <T,>(
-    url: string,
-    init?: RequestInit & { skipJsonHeader?: boolean }
-  ): Promise<T> => {
-    const response = await fetch(url, fetchInitWithJson(init))
+  // Category state
+  const [categoryState, setCategoryState] = useState<CategoryState>({
+    loading: false,
+    loadingCategories: true,
+    saving: false,
+    categories: [],
+    selectedCategoryId: null,
+    selectedCategory: null,
+    config: null,
+    inherited: null,
+    defaults: {
+      defaultMenuLayout: "simple-dropdown",
+      baseHref: "/store?category="
+    },
+    menuLayout: null,
+    displayAsColumn: false,
+    columnTitle: "",
+    columnDescription: "",
+    columnImageUrl: "",
+    columnBadge: "",
+    icon: "",
+    thumbnailUrl: "",
+    title: "",
+    subtitle: "",
+    excludedFromMenu: false,
+    tagline: "",
+    columnsText: "",
+    featuredText: ""
+  })
 
-    if (response.status === 204) {
-      return undefined as T
-    }
-
-    const data = await response
-      .json()
-      .catch(() => ({ message: "Unable to parse response" }))
-
-    if (!response.ok) {
-      const message =
-        typeof data?.message === "string"
-          ? data.message
-          : `Request failed with status ${response.status}`
-      throw new Error(message)
-    }
-
-    return data as T
+  // Load global config
+  useEffect(() => {
+    loadGlobalConfig()
   }, [])
 
-  const loadData = useCallback(async () => {
-    setGlobalState(prev => ({ ...prev, loading: true }))
-    setCategoryState(prev => ({ ...prev, loading: true, error: null }))
+  // Load categories
+  useEffect(() => {
+    loadCategories()
+  }, [])
 
+  // Load category config when selected
+  useEffect(() => {
+    if (categoryState.selectedCategoryId) {
+      loadCategoryConfig(categoryState.selectedCategoryId)
+    }
+  }, [categoryState.selectedCategoryId])
+
+  const loadGlobalConfig = async () => {
     try {
-      const [global, categories] = await Promise.all([
-        fetchJson<GlobalResponse>("/admin/mega-menu/global"),
-        fetchJson<CategoriesResponse>("/admin/mega-menu/categories")
-      ])
+      const response = await fetch("/admin/mega-menu/global", {
+        credentials: "include"
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to load global configuration")
+      }
+
+      const data: GlobalResponse = await response.json()
 
       setGlobalState({
         loading: false,
         saving: false,
-        config: global.config,
-        preview: global.preview,
-        defaults: global.defaults,
-        draft: createGlobalDraft(global.config, global.defaults)
-      })
-
-      setCategoryState({
-        loading: false,
-        error: null,
-        categories: categories.categories
+        config: data.config,
+        defaults: data.defaults,
+        defaultMenuLayout: data.config?.defaultMenuLayout || data.defaults.defaultMenuLayout
       })
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Unable to load Mega Menu settings."
+      toast.error("Error", {
+        description: error instanceof Error ? error.message : "Failed to load global configuration"
+      })
       setGlobalState(prev => ({ ...prev, loading: false }))
-      setCategoryState({ loading: false, error: message, categories: [] })
-      toast.error(message)
     }
-  }, [fetchJson])
+  }
 
-  useEffect(() => {
-    void loadData()
-  }, [loadData])
+  const loadCategories = async () => {
+    try {
+      const response = await fetch("/admin/product-categories?fields=id,name,handle,description,parent_category_id,rank&limit=1000", {
+        credentials: "include"
+      })
 
-  const handleGlobalDraftChange = useCallback(
-    <K extends keyof GlobalDraft>(key: K, value: GlobalDraft[K]) => {
-      setGlobalState(prev => ({
-        ...prev,
-        draft: {
-          ...prev.draft,
-          [key]: value
+      if (!response.ok) {
+        throw new Error("Failed to load categories")
+      }
+
+      const data = await response.json()
+      const categories: Category[] = data.product_categories || []
+
+      // Load all mega-menu configs
+      const configsResponse = await fetch("/admin/mega-menu/categories", {
+        credentials: "include"
+      })
+
+      const configsData = configsResponse.ok ? await configsResponse.json() : { categories: [] }
+      const configsByCategory = new Map<string, MegaMenuConfigDTO>()
+      configsData.categories?.forEach((cat: any) => {
+        if (cat.config) {
+          configsByCategory.set(cat.id, cat.config)
         }
+      })
+
+      // Build hierarchy
+      const categoryMap = new Map<string, CategoryWithConfig>()
+      const rootCategories: CategoryWithConfig[] = []
+
+      // First pass: create all categories with their configs
+      categories.forEach(cat => {
+        categoryMap.set(cat.id, {
+          ...cat,
+          config: configsByCategory.get(cat.id) || null,
+          children: [],
+          level: 0
+        })
+      })
+
+      // Second pass: build hierarchy
+      categories.forEach(cat => {
+        const category = categoryMap.get(cat.id)!
+        if (cat.parent_category_id) {
+          const parent = categoryMap.get(cat.parent_category_id)
+          if (parent) {
+            parent.children = parent.children || []
+            parent.children.push(category)
+            category.level = (parent.level || 0) + 1
+          }
+        } else {
+          rootCategories.push(category)
+        }
+      })
+
+      // Sort by rank
+      const sortByRank = (cats: CategoryWithConfig[]) => {
+        cats.sort((a, b) => (a.rank || 0) - (b.rank || 0))
+        cats.forEach(cat => {
+          if (cat.children && cat.children.length > 0) {
+            sortByRank(cat.children)
+          }
+        })
+      }
+      sortByRank(rootCategories)
+
+      setCategoryState(prev => ({
+        ...prev,
+        loadingCategories: false,
+        categories: rootCategories
       }))
-    },
-    []
-  )
-
-  const handleSaveGlobal = useCallback(async () => {
-    if (globalState.saving) {
-      return
+    } catch (error) {
+      toast.error("Error", {
+        description: error instanceof Error ? error.message : "Failed to load categories"
+      })
+      setCategoryState(prev => ({ ...prev, loadingCategories: false }))
     }
+  }
 
-    const columns = parseJsonArray<MegaMenuColumnConfig>(
-      "Columns",
-      globalState.draft.columnsText
-    )
+  const loadCategoryConfig = async (categoryId: string) => {
+    setCategoryState(prev => ({ ...prev, loading: true }))
 
-    if (columns === null) {
-      return
+    try {
+      const response = await fetch(`/admin/mega-menu/${categoryId}`, {
+        credentials: "include"
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to load category configuration")
+      }
+
+      const data: CategoryConfigResponse = await response.json()
+
+      // Find the selected category in the tree
+      const findCategory = (cats: CategoryWithConfig[]): CategoryWithConfig | null => {
+        for (const cat of cats) {
+          if (cat.id === categoryId) return cat
+          if (cat.children) {
+            const found = findCategory(cat.children)
+            if (found) return found
+          }
+        }
+        return null
+      }
+
+      const selectedCategory = findCategory(categoryState.categories)
+
+      setCategoryState(prev => ({
+        ...prev,
+        loading: false,
+        selectedCategory,
+        config: data.config,
+        inherited: data.inherited,
+        defaults: data.defaults,
+        // Populate form fields
+        menuLayout: data.config?.menuLayout || null,
+        displayAsColumn: data.config?.displayAsColumn || false,
+        columnTitle: data.config?.columnTitle || "",
+        columnDescription: data.config?.columnDescription || "",
+        columnImageUrl: data.config?.columnImageUrl || "",
+        columnBadge: data.config?.columnBadge || "",
+        icon: data.config?.icon || "",
+        thumbnailUrl: data.config?.thumbnailUrl || "",
+        title: data.config?.title || "",
+        subtitle: data.config?.subtitle || "",
+        excludedFromMenu: data.config?.excludedFromMenu || false,
+        tagline: data.config?.tagline || "",
+        columnsText: data.config?.columns ? JSON.stringify(data.config.columns, null, 2) : "",
+        featuredText: data.config?.featured ? JSON.stringify(data.config.featured, null, 2) : ""
+      }))
+    } catch (error) {
+      toast.error("Error", {
+        description: error instanceof Error ? error.message : "Failed to load category configuration"
+      })
+      setCategoryState(prev => ({ ...prev, loading: false }))
     }
+  }
 
-    const featured = parseJsonArray<MegaMenuFeaturedCardConfig>(
-      "Featured cards",
-      globalState.draft.featuredText
-    )
-
-    if (featured === null) {
-      return
-    }
-
+  const saveGlobalConfig = async () => {
     setGlobalState(prev => ({ ...prev, saving: true }))
 
     try {
-      const payload = {
-        layout: globalState.draft.layout,
-        tagline: globalState.draft.tagline.trim().length
-          ? globalState.draft.tagline.trim()
-          : null,
-        columns,
-        featured
+      const response = await fetch("/admin/mega-menu/global", {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          defaultMenuLayout: globalState.defaultMenuLayout
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to save global configuration")
       }
 
-      const data = await fetchJson<{
-        config: MegaMenuConfigDTO
-        preview: MegaMenuContent | null
-      }>("/admin/mega-menu/global", {
+      const data = await response.json()
+
+      setGlobalState(prev => ({
+        ...prev,
+        saving: false,
+        config: data.config
+      }))
+
+      toast.success("Success", {
+        description: "Global configuration saved successfully"
+      })
+    } catch (error) {
+      toast.error("Error", {
+        description: error instanceof Error ? error.message : "Failed to save global configuration"
+      })
+      setGlobalState(prev => ({ ...prev, saving: false }))
+    }
+  }
+
+  const saveCategoryConfig = async () => {
+    if (!categoryState.selectedCategoryId) return
+
+    setCategoryState(prev => ({ ...prev, saving: true }))
+
+    try {
+      const payload: any = {
+        menuLayout: categoryState.menuLayout,
+        excludedFromMenu: categoryState.excludedFromMenu
+      }
+
+      // Add level-specific fields
+      if (categoryState.selectedCategory) {
+        const level = categoryState.selectedCategory.level || 0
+
+        // Second-level fields
+        if (level === 1) {
+          payload.displayAsColumn = categoryState.displayAsColumn
+          payload.columnTitle = categoryState.columnTitle
+          payload.columnDescription = categoryState.columnDescription
+          payload.columnImageUrl = categoryState.columnImageUrl
+          payload.columnBadge = categoryState.columnBadge
+          // Also include item display fields for second-level
+          payload.icon = categoryState.icon
+          payload.thumbnailUrl = categoryState.thumbnailUrl
+          payload.title = categoryState.title
+          payload.subtitle = categoryState.subtitle
+        }
+
+        // Third-level fields
+        if (level === 2) {
+          payload.icon = categoryState.icon
+          payload.thumbnailUrl = categoryState.thumbnailUrl
+          payload.title = categoryState.title
+          payload.subtitle = categoryState.subtitle
+        }
+
+        // Top-level can have tagline, columns, featured
+        if (level === 0 && categoryState.menuLayout === "rich-columns") {
+          payload.tagline = categoryState.tagline
+
+          if (categoryState.columnsText) {
+            try {
+              payload.columns = JSON.parse(categoryState.columnsText)
+            } catch {
+              // Ignore parse errors
+            }
+          }
+
+          if (categoryState.featuredText) {
+            try {
+              payload.featured = JSON.parse(categoryState.featuredText)
+            } catch {
+              // Ignore parse errors
+            }
+          }
+        }
+      }
+
+      const response = await fetch(`/admin/mega-menu/${categoryState.selectedCategoryId}`, {
         method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify(payload)
       })
 
-      setGlobalState(prev => ({
-        loading: false,
-        saving: false,
-        config: data.config,
-        preview: data.preview,
-        defaults: prev.defaults,
-        draft: createGlobalDraft(data.config, prev.defaults)
-      }))
-
-      toast.success("Global mega menu settings saved")
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to save global settings."
-      setGlobalState(prev => ({ ...prev, saving: false }))
-      toast.error(message)
-    }
-  }, [fetchJson, globalState.draft, globalState.saving])
-
-  const openCategoryModal = useCallback(
-    async (category: CategorySummary) => {
-      setCategoryModal(prev => ({
-        ...prev,
-        open: true,
-        loading: true,
-        saving: false,
-        category,
-        config: category.config ?? null,
-        error: null
-      }))
-
-      try {
-        const detail = await fetchJson<CategoryDetailResponse>(
-          `/admin/mega-menu/${category.id}`
-        )
-
-        setCategoryModal({
-          open: true,
-          loading: false,
-          saving: false,
-          category,
-          config: detail.config,
-          draft: createCategoryDraft(detail.config ?? detail.inherited, detail.defaults),
-          preview: detail.preview,
-          inherited: detail.inherited,
-          defaults: detail.defaults,
-          error: null
-        })
-      } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Unable to load category settings."
-        setCategoryModal(createCategoryModalState())
-        toast.error(message)
-      }
-    },
-    [fetchJson]
-  )
-
-  const closeCategoryModal = useCallback(() => {
-    setCategoryModal(createCategoryModalState())
-  }, [])
-
-  const handleCategoryDraftChange = useCallback(
-    <K extends keyof CategoryDraft>(key: K, value: CategoryDraft[K]) => {
-      setCategoryModal(prev => ({
-        ...prev,
-        draft: {
-          ...prev.draft,
-          [key]: value
-        }
-      }))
-    },
-    []
-  )
-
-  const handleAddSubmenuCategory = useCallback((categoryId: string) => {
-    setCategoryModal(prev => {
-      if (!categoryId || prev.draft.submenuCategoryIds.includes(categoryId)) {
-        return prev
+      if (!response.ok) {
+        throw new Error("Failed to save category configuration")
       }
 
-      return {
-        ...prev,
-        draft: {
-          ...prev.draft,
-          submenuCategoryIds: [...prev.draft.submenuCategoryIds, categoryId]
-        }
-      }
-    })
-  }, [])
-
-  const handleRemoveSubmenuCategory = useCallback((categoryId: string) => {
-    setCategoryModal(prev => ({
-      ...prev,
-      draft: {
-        ...prev.draft,
-        submenuCategoryIds: prev.draft.submenuCategoryIds.filter(
-          id => id !== categoryId
-        )
-      }
-    }))
-  }, [])
-
-  const handleResetCategoryDraft = useCallback(() => {
-    setCategoryModal(prev => ({
-      ...prev,
-      draft: createCategoryDraft(prev.config ?? prev.inherited, prev.defaults)
-    }))
-  }, [])
-
-  const handleSaveCategory = useCallback(async () => {
-    if (!categoryModal.open || !categoryModal.category) {
-      return
-    }
-
-    if (categoryModal.saving) {
-      return
-    }
-
-    const columns = parseJsonArray<MegaMenuColumnConfig>(
-      "Columns",
-      categoryModal.draft.columnsText
-    )
-    if (columns === null) {
-      return
-    }
-
-    const featured = parseJsonArray<MegaMenuFeaturedCardConfig>(
-      "Featured cards",
-      categoryModal.draft.featuredText
-    )
-    if (featured === null) {
-      return
-    }
-
-    setCategoryModal(prev => ({ ...prev, saving: true }))
-
-    try {
-      const payload = {
-        layout: categoryModal.draft.layout,
-        tagline: categoryModal.draft.tagline.trim().length
-          ? categoryModal.draft.tagline.trim()
-          : null,
-        submenuCategoryIds: categoryModal.draft.submenuCategoryIds,
-        columns,
-        featured
-      }
-
-      const data = await fetchJson<CategoryUpdateResponse>(
-        `/admin/mega-menu/${categoryModal.category.id}`,
-        {
-          method: "PUT",
-          body: JSON.stringify(payload)
-        }
-      )
-
-      setCategoryModal(prev => ({
-        ...prev,
-        saving: false,
-        config: data.config,
-        draft: createCategoryDraft(data.config, prev.defaults),
-        preview: data.preview,
-        inherited: null
-      }))
+      const data = await response.json()
 
       setCategoryState(prev => ({
         ...prev,
-        categories: prev.categories.map(entry =>
-          entry.id === data.categoryId
-            ? { ...entry, config: data.config }
-            : entry
-        )
+        saving: false,
+        config: data.config
       }))
 
-      toast.success("Category mega menu saved")
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Failed to save category mega menu."
-      setCategoryModal(prev => ({ ...prev, saving: false }))
-      toast.error(message)
-    }
-  }, [categoryModal, fetchJson])
-
-  const handleDeleteCategoryConfig = useCallback(async () => {
-    if (!categoryModal.category) {
-      return
-    }
-
-    try {
-      await fetchJson<void>(`/admin/mega-menu/${categoryModal.category.id}`, {
-        method: "DELETE",
-        skipJsonHeader: true
+      toast.success("Success", {
+        description: "Category configuration saved successfully"
       })
-
-      setCategoryState(prev => ({
-        ...prev,
-        categories: prev.categories.map(entry =>
-          entry.id === categoryModal.category?.id
-            ? { ...entry, config: null }
-            : entry
-        )
-      }))
-
-      toast.success("Mega menu configuration removed")
-      closeCategoryModal()
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Failed to remove category configuration."
-      toast.error(message)
+      toast.error("Error", {
+        description: error instanceof Error ? error.message : "Failed to save category configuration"
+      })
+      setCategoryState(prev => ({ ...prev, saving: false }))
     }
-  }, [categoryModal.category, closeCategoryModal, fetchJson])
+  }
 
-  const categoryOptions = useMemo(() => {
-    return categoryState.categories.map(category => ({
-      id: category.id,
-      label: formatCategoryLabel(category)
-    }))
-  }, [categoryState.categories])
-
-  const selectedSubmenuEntries = useMemo(() => {
-    if (!categoryModal.category) {
-      return []
+  // Get parent and grandparent for conditional rendering
+  const getParent = (categoryId: string): CategoryWithConfig | null => {
+    const findParent = (cats: CategoryWithConfig[]): CategoryWithConfig | null => {
+      for (const cat of cats) {
+        if (cat.children?.some(c => c.id === categoryId)) {
+          return cat
+        }
+        if (cat.children) {
+          const found = findParent(cat.children)
+          if (found) return found
+        }
+      }
+      return null
     }
+    return findParent(categoryState.categories)
+  }
 
-    return categoryModal.draft.submenuCategoryIds
-      .map(id => ({
-        id,
-        label:
-          categoryOptions.find(option => option.id === id)?.label ?? id
-      }))
-  }, [categoryModal.category, categoryModal.draft.submenuCategoryIds, categoryOptions])
+  const parent = categoryState.selectedCategoryId ? getParent(categoryState.selectedCategoryId) : null
+  const grandparent = parent ? getParent(parent.id) : null
+  const parentMenuLayout = parent?.config?.menuLayout || globalState.defaultMenuLayout
 
-  const globalPreviewJson = useMemo(
-    () =>
-      globalState.preview
-        ? JSON.stringify(globalState.preview, null, 2)
-        : "No preview available",
-    [globalState.preview]
-  )
-
-  const categoryPreviewJson = useMemo(
-    () =>
-      categoryModal.preview
-        ? JSON.stringify(categoryModal.preview, null, 2)
-        : categoryModal.inherited
-          ? "Preview derived from global configuration"
-          : "No preview configured",
-    [categoryModal.preview, categoryModal.inherited]
-  )
+  const hasChildren = categoryState.selectedCategory?.children && categoryState.selectedCategory.children.length > 0
+  const level = categoryState.selectedCategory?.level || 0
 
   return (
-    <div className="flex flex-col gap-6">
-      <Container className="flex flex-col gap-6">
-        <div className="flex items-center justify-between">
-          <Heading>Global Mega Menu</Heading>
-          <Button
-            variant="secondary"
-            size="small"
-            onClick={() =>
-              setGlobalState(prev => ({
-                ...prev,
-                draft: createGlobalDraft(prev.config, prev.defaults)
-              }))
-            }
-            disabled={globalState.loading || globalState.saving}
-          >
-            Reset draft
-          </Button>
-        </div>
-        {globalState.loading ? (
-          <Skeleton className="h-40 w-full" />
-        ) : (
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Text className="font-semibold">Layout</Text>
-              <div className="flex gap-2">
-                {AVAILABLE_LAYOUTS.map(layout => (
-                  <Button
-                    key={layout}
-                    variant={
-                      globalState.draft.layout === layout ? "primary" : "secondary"
-                    }
-                    size="small"
-                    onClick={() => handleGlobalDraftChange("layout", layout)}
-                  >
-                    {layout === "thumbnail-grid" ? "Thumbnail grid" : "Default"}
-                  </Button>
-                ))}
-              </div>
-            </div>
+    <div className="flex flex-col gap-y-4">
+      <div className="flex items-center justify-between">
+        <Heading level="h1">Mega Menu Configuration</Heading>
+      </div>
 
-            <div className="grid gap-2">
-              <Text className="font-semibold">Tagline</Text>
-              <Input
-                value={globalState.draft.tagline}
-                onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                  handleGlobalDraftChange("tagline", event.target.value)
-                }
-                placeholder="Optional tagline displayed above the mega menu"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Text className="font-semibold">Columns JSON</Text>
-              <Textarea
-                value={globalState.draft.columnsText}
-                onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
-                  handleGlobalDraftChange("columnsText", event.target.value)
-                }
-                placeholder='[{ "heading": "Featured", "items": [] }]'
-                rows={10}
-              />
-              <Text size="small" className="text-ui-fg-muted">
-                Leave blank to rely on per-category configuration or autogenerated submenu items.
-              </Text>
-            </div>
-
-            <div className="grid gap-2">
-              <Text className="font-semibold">Featured JSON</Text>
-              <Textarea
-                value={globalState.draft.featuredText}
-                onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
-                  handleGlobalDraftChange("featuredText", event.target.value)
-                }
-                placeholder='[{ "label": "Spotlight", "href": "/stories" }]'
-                rows={6}
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Text className="font-semibold">Preview</Text>
-              <Textarea value={globalPreviewJson} readOnly rows={10} />
-            </div>
-
-            <div className="flex items-center gap-3">
-              <Button
-                onClick={() => void handleSaveGlobal()}
-                loading={globalState.saving}
-              >
-                Save global configuration
-              </Button>
-            </div>
+      {/* Global Config Section */}
+      <Container>
+        <div className="flex flex-col gap-y-4">
+          <div>
+            <Heading level="h2">Global Configuration</Heading>
+            <Text className="text-ui-fg-muted text-sm mt-1">
+              Default menu layout for all top-level categories. Override per-category below.
+            </Text>
           </div>
-        )}
+
+          <div className="flex items-end gap-x-4">
+            <div className="flex-1 flex flex-col gap-y-2">
+              <Label>Default Menu Layout</Label>
+              <Select
+                value={globalState.defaultMenuLayout}
+                onValueChange={(value) =>
+                  setGlobalState(prev => ({ ...prev, defaultMenuLayout: value as MegaMenuLayout }))
+                }
+                disabled={globalState.loading || globalState.saving}
+              >
+                <Select.Trigger>
+                  <Select.Value />
+                </Select.Trigger>
+                <Select.Content>
+                  {MENU_LAYOUTS.map((layout) => (
+                    <Select.Item key={layout.value} value={layout.value}>
+                      <div className="flex flex-col">
+                        <span>{layout.label}</span>
+                        <span className="text-ui-fg-muted text-xs">{layout.description}</span>
+                      </div>
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select>
+            </div>
+            <Button
+              onClick={saveGlobalConfig}
+              disabled={globalState.loading || globalState.saving}
+              isLoading={globalState.saving}
+            >
+              Save Global Config
+            </Button>
+          </div>
+        </div>
       </Container>
 
-      <Container className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <Heading size="h2">Category Mega Menus</Heading>
-          <Text className="text-ui-fg-muted">
-            Configure layout overrides and submenu items for individual categories.
-          </Text>
-        </div>
-        {categoryState.loading ? (
-          <Skeleton className="h-64 w-full" />
-        ) : categoryState.error ? (
-          <Text className="text-ui-fg-error">{categoryState.error}</Text>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {categoryState.categories.map(category => (
-              <div
-                key={category.id}
-                className="flex items-center justify-between rounded-md border border-ui-border-base p-4"
-              >
-                <div className="flex flex-col">
-                  <Text className="font-semibold">
-                    {formatCategoryLabel(category)}
-                  </Text>
-                  <Text size="small" className="text-ui-fg-muted">
-                    {category.description ?? "No description"}
-                  </Text>
-                  {category.config ? (
-                    <div className="mt-2 flex gap-2">
-                      <Badge color="green">Custom layout</Badge>
-                      <Badge variant="secondary">
-                        {category.config.layout === "thumbnail-grid"
-                          ? "Thumbnail grid"
-                          : "Default"}
-                      </Badge>
-                    </div>
-                  ) : (
-                    <Badge className="mt-2" variant="secondary">
-                      Inherits global configuration
+      {/* Categories Section */}
+      <Container>
+        <div className="flex flex-col gap-y-4">
+          <div>
+            <Heading level="h2">Category Configuration</Heading>
+            <Text className="text-ui-fg-subtle mt-1">
+              Configure menu layout and options for individual categories
+            </Text>
+          </div>
+
+              <div className="flex gap-x-4">
+            {/* Left: Category Tree */}
+            <div className="flex-1 border rounded-lg p-4 bg-ui-bg-base max-h-[600px] overflow-y-auto">
+              {categoryState.loadingCategories ? (
+                <div className="flex items-center justify-center py-8">
+                  <Text className="text-ui-fg-muted">Loading categories...</Text>
+                </div>
+              ) : categoryState.categories.length === 0 ? (
+                <div className="flex items-center justify-center py-8">
+                  <Text className="text-ui-fg-muted">No categories found</Text>
+                </div>
+              ) : (
+                <CategoryTree
+                  categories={categoryState.categories}
+                  selectedId={categoryState.selectedCategoryId}
+                  onSelect={(id) => setCategoryState(prev => ({ ...prev, selectedCategoryId: id }))}
+                />
+              )}
+            </div>
+
+            {/* Right: Configuration Panel */}
+            {categoryState.selectedCategoryId && (
+              <div className="flex-1 border rounded-lg p-4 bg-ui-bg-base max-h-[600px] overflow-y-auto">
+                <div className="flex flex-col gap-y-4 border-t pt-4">
+                  {/* Category Info */}
+                  <div className="flex items-center gap-x-2">
+                    <Badge size="small" color={level === 0 ? "blue" : level === 1 ? "green" : "orange"}>
+                      {level === 0 ? "Top-level" : level === 1 ? "Second-level" : "Third-level"}
                     </Badge>
-                  )}
-                </div>
-                <Button
-                  variant="secondary"
-                  onClick={() => openCategoryModal(category)}
-                >
-                  Edit
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
-      </Container>
-
-      <FocusModal open={categoryModal.open} onOpenChange={open => !open && closeCategoryModal()}>
-        <FocusModal.Content className="max-h-[90vh] w-[720px]">
-          <FocusModal.Header>
-            <div className="flex flex-col gap-1">
-              <Heading>
-                {categoryModal.category
-                  ? `Mega Menu · ${formatCategoryLabel(categoryModal.category)}`
-                  : "Category Mega Menu"}
-              </Heading>
-              {categoryModal.category?.parent_category_id ? (
-                <Text size="small" className="text-ui-fg-muted">
-                  Parent: {categoryModal.category.parent_category_id}
-                </Text>
-              ) : null}
-            </div>
-          </FocusModal.Header>
-          <FocusModal.Body>
-            {categoryModal.loading ? (
-              <Skeleton className="h-80 w-full" />
-            ) : (
-              <div className="flex flex-col gap-4">
-                <div className="grid gap-2">
-                  <Text className="font-semibold">Layout</Text>
-                  <div className="flex gap-2">
-                    {AVAILABLE_LAYOUTS.map(layout => (
-                      <Button
-                        key={layout}
-                        variant={
-                          categoryModal.draft.layout === layout
-                            ? "primary"
-                            : "secondary"
-                        }
-                        size="small"
-                        onClick={() => handleCategoryDraftChange("layout", layout)}
-                      >
-                        {layout === "thumbnail-grid" ? "Thumbnail grid" : "Default"}
-                      </Button>
-                    ))}
+                    {parent && (
+                      <Text className="text-ui-fg-muted text-sm">
+                        Parent: {parent.name}
+                      </Text>
+                    )}
                   </div>
-                </div>
 
-                <div className="grid gap-2">
-                  <Text className="font-semibold">Tagline</Text>
-                  <Input
-                    value={categoryModal.draft.tagline}
-                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                      handleCategoryDraftChange("tagline", event.target.value)
-                    }
-                    placeholder="Optional category-specific tagline"
-                  />
-                </div>
+                  {/* Exclude from menu */}
+                  <div className="flex items-center gap-x-2">
+                    <Checkbox
+                      id="excluded"
+                      checked={categoryState.excludedFromMenu}
+                      onCheckedChange={(checked) =>
+                        setCategoryState(prev => ({ ...prev, excludedFromMenu: !!checked }))
+                      }
+                    />
+                    <Label htmlFor="excluded">
+                      Exclude from menu (retains config but hides category)
+                    </Label>
+                  </div>
 
-                <div className="grid gap-2">
-                  <Text className="font-semibold">Submenu items</Text>
-                  <Select
-                    onValueChange={value => {
-                      handleAddSubmenuCategory(value)
-                    }}
-                    disabled={categoryOptions.length === 0}
-                  >
-                    <Select.Trigger>
-                      <Select.Value placeholder="Add category" />
-                    </Select.Trigger>
-                    <Select.Content>
-                      {categoryOptions.map(option => (
-                        <Select.Item key={option.id} value={option.id}>
-                          {option.label}
-                        </Select.Item>
-                      ))}
-                    </Select.Content>
-                  </Select>
-                  {selectedSubmenuEntries.length ? (
-                    <div className="flex flex-wrap gap-2">
-                      {selectedSubmenuEntries.map(entry => (
-                        <Badge
-                          key={entry.id}
-                          variant="secondary"
-                          className="flex items-center gap-2"
-                        >
-                          {entry.label}
-                          <button
-                            type="button"
-                            className="rounded-full px-1.5 py-0.5 text-xs font-semibold text-ui-fg-muted transition-colors hover:text-ui-fg-base"
-                            onClick={() => handleRemoveSubmenuCategory(entry.id)}
-                          >
-                            ×
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : (
-                    <Text size="small" className="text-ui-fg-muted">
-                      Use the dropdown to add submenu categories. Items will be deduplicated in display order.
-                    </Text>
+                  {/* Top-level category options */}
+                  {level === 0 && (
+                    <>
+                      {!hasChildren && (
+                        <div className="bg-ui-bg-subtle p-4 rounded-md">
+                          <Text className="text-ui-fg-muted">
+                            This category has no sub-categories. Add sub-categories in the Products → Categories section to enable menu options.
+                          </Text>
+                        </div>
+                      )}
+
+                      {hasChildren && (
+                        <>
+                          <div className="flex flex-col gap-y-2">
+                            <Label>Menu Layout</Label>
+                            <Select
+                              value={categoryState.menuLayout || "_default"}
+                              onValueChange={(value) =>
+                                setCategoryState(prev => ({
+                                  ...prev,
+                                  menuLayout: value === "_default" ? null : value as MegaMenuLayout
+                                }))
+                              }
+                            >
+                              <Select.Trigger>
+                                <Select.Value />
+                              </Select.Trigger>
+                              <Select.Content>
+                                <Select.Item value="_default">Use default ({globalState.defaultMenuLayout})</Select.Item>
+                                {MENU_LAYOUTS.map((layout) => (
+                                  <Select.Item key={layout.value} value={layout.value}>
+                                    <div className="flex flex-col">
+                                      <span>{layout.label}</span>
+                                      <span className="text-ui-fg-muted text-xs">{layout.description}</span>
+                                    </div>
+                                  </Select.Item>
+                                ))}
+                              </Select.Content>
+                            </Select>
+                          </div>
+                        </>
+                      )}
+
+                      {hasChildren && categoryState.menuLayout === "rich-columns" && (
+                        <>
+                          <div className="flex flex-col gap-y-2">
+                            <Label>Tagline</Label>
+                            <Input
+                              value={categoryState.tagline}
+                              onChange={(e) =>
+                                setCategoryState(prev => ({ ...prev, tagline: e.target.value }))
+                              }
+                              placeholder="Optional tagline text"
+                            />
+                          </div>
+
+                          <div className="flex flex-col gap-y-2">
+                            <Label>Columns (JSON)</Label>
+                            <textarea
+                              className="txt-compact-small bg-ui-bg-field border border-ui-border-base rounded-md p-2 font-mono"
+                              rows={6}
+                              value={categoryState.columnsText}
+                              onChange={(e) =>
+                                setCategoryState(prev => ({ ...prev, columnsText: e.target.value }))
+                              }
+                              placeholder='[{"heading": "...", "items": [...]}]'
+                            />
+                          </div>
+
+                          <div className="flex flex-col gap-y-2">
+                            <Label>Featured Cards (JSON)</Label>
+                            <textarea
+                              className="txt-compact-small bg-ui-bg-field border border-ui-border-base rounded-md p-2 font-mono"
+                              rows={6}
+                              value={categoryState.featuredText}
+                              onChange={(e) =>
+                                setCategoryState(prev => ({ ...prev, featuredText: e.target.value }))
+                              }
+                              placeholder='[{"label": "...", "href": "..."}]'
+                            />
+                          </div>
+                        </>
+                      )}
+                    </>
                   )}
-                </div>
 
-                <div className="grid gap-2">
-                  <Text className="font-semibold">Columns JSON</Text>
-                  <Textarea
-                    value={categoryModal.draft.columnsText}
-                    onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
-                      handleCategoryDraftChange("columnsText", event.target.value)
-                    }
-                    placeholder='[{ "heading": "Column", "items": [] }]'
-                    rows={8}
-                  />
-                  <Text size="small" className="text-ui-fg-muted">
-                    Columns override automatically generated submenu items. Include optional categoryId fields to auto-populate labels and links.
-                  </Text>
-                </div>
+                  {/* Second-level category options */}
+                  {level === 1 && (
+                    <>
+                      {parentMenuLayout !== "rich-columns" && (
+                        <div className="bg-ui-bg-subtle p-4 rounded-md">
+                          <Text className="text-ui-fg-muted">
+                            Parent category must use "Rich Columns" layout to enable advanced column configuration.
+                            Current parent layout: {parentMenuLayout}
+                          </Text>
+                        </div>
+                      )}
 
-                <div className="grid gap-2">
-                  <Text className="font-semibold">Featured JSON</Text>
-                  <Textarea
-                    value={categoryModal.draft.featuredText}
-                    onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
-                      handleCategoryDraftChange("featuredText", event.target.value)
-                    }
-                    rows={6}
-                  />
-                </div>
+                      {parentMenuLayout === "rich-columns" && (
+                        <>
+                          <div className="flex items-center gap-x-2">
+                            <Checkbox
+                              id="displayAsColumn"
+                              checked={categoryState.displayAsColumn}
+                              onCheckedChange={(checked) =>
+                                setCategoryState(prev => ({ ...prev, displayAsColumn: !!checked }))
+                              }
+                            />
+                            <Label htmlFor="displayAsColumn">
+                              Display as title/image/description column
+                            </Label>
+                          </div>
 
-                <div className="grid gap-2">
-                  <Text className="font-semibold">Preview</Text>
-                  <Textarea value={categoryPreviewJson} readOnly rows={10} />
+                          {categoryState.displayAsColumn && (
+                            <>
+                              <div className="flex flex-col gap-y-2">
+                                <Label>Column Title</Label>
+                                <Input
+                                  value={categoryState.columnTitle}
+                                  onChange={(e) =>
+                                    setCategoryState(prev => ({ ...prev, columnTitle: e.target.value }))
+                                  }
+                                  placeholder="Leave empty to use category name"
+                                />
+                              </div>
+
+                              <div className="flex flex-col gap-y-2">
+                                <Label>Column Description</Label>
+                                <Input
+                                  value={categoryState.columnDescription}
+                                  onChange={(e) =>
+                                    setCategoryState(prev => ({ ...prev, columnDescription: e.target.value }))
+                                  }
+                                  placeholder="Leave empty to use category description"
+                                />
+                              </div>
+
+                              <div className="flex flex-col gap-y-2">
+                                <Label>Column Image URL</Label>
+                                <Input
+                                  value={categoryState.columnImageUrl}
+                                  onChange={(e) =>
+                                    setCategoryState(prev => ({ ...prev, columnImageUrl: e.target.value }))
+                                  }
+                                  placeholder="https://..."
+                                />
+                              </div>
+
+                              <div className="flex flex-col gap-y-2">
+                                <Label>Badge</Label>
+                                <Select
+                                  value={categoryState.columnBadge || "_none"}
+                                  onValueChange={(value) =>
+                                    setCategoryState(prev => ({ ...prev, columnBadge: value === "_none" ? "" : value }))
+                                  }
+                                >
+                                  <Select.Trigger>
+                                    <Select.Value />
+                                  </Select.Trigger>
+                                  <Select.Content>
+                                    <Select.Item value="_none">No badge</Select.Item>
+                                    <Select.Item value="new">New</Select.Item>
+                                    <Select.Item value="offers">Offers</Select.Item>
+                                    <Select.Item value="free-shipping">Free Shipping</Select.Item>
+                                    <Select.Item value="featured">Featured</Select.Item>
+                                  </Select.Content>
+                                </Select>
+                              </div>
+                            </>
+                          )}
+
+                          {!categoryState.displayAsColumn && (
+                            <>
+                              <div className="bg-ui-bg-subtle p-4 rounded-md">
+                                <Text className="text-ui-fg-muted">
+                                  {hasChildren
+                                    ? "This category will show its third-level sub-categories as a list. Configure third-level categories individually to set their icons, titles, and subtitles."
+                                    : "No third-level categories available. Add sub-categories or enable 'Display as column' option."}
+                                </Text>
+                              </div>
+
+                              {/* Third-level item display configuration when not displaying as column */}
+                              <div className="flex flex-col gap-y-2">
+                                <Label>Icon</Label>
+                                <Input
+                                  value={categoryState.icon}
+                                  onChange={(e) =>
+                                    setCategoryState(prev => ({ ...prev, icon: e.target.value }))
+                                  }
+                                  placeholder="Icon name or identifier for this item"
+                                />
+                              </div>
+
+                              <div className="flex flex-col gap-y-2">
+                                <Label>Thumbnail URL</Label>
+                                <Input
+                                  value={categoryState.thumbnailUrl}
+                                  onChange={(e) =>
+                                    setCategoryState(prev => ({ ...prev, thumbnailUrl: e.target.value }))
+                                  }
+                                  placeholder="https://..."
+                                />
+                              </div>
+
+                              <div className="flex flex-col gap-y-2">
+                                <Label>Title Override</Label>
+                                <Input
+                                  value={categoryState.title}
+                                  onChange={(e) =>
+                                    setCategoryState(prev => ({ ...prev, title: e.target.value }))
+                                  }
+                                  placeholder="Leave empty to use category name"
+                                />
+                              </div>
+
+                              <div className="flex flex-col gap-y-2">
+                                <Label>Subtitle</Label>
+                                <Input
+                                  value={categoryState.subtitle}
+                                  onChange={(e) =>
+                                    setCategoryState(prev => ({ ...prev, subtitle: e.target.value }))
+                                  }
+                                  placeholder="Leave empty to use category description (clamped)"
+                                />
+                              </div>
+                            </>
+                          )}
+                        </>
+                      )}
+                    </>
+                  )}
+
+                  {/* Third-level category options */}
+                  {level === 2 && (
+                    <>
+                      {(!grandparent || grandparent.config?.menuLayout !== "rich-columns" || parent?.config?.displayAsColumn) && (
+                        <div className="bg-ui-bg-subtle p-4 rounded-md">
+                          <Text className="text-ui-fg-muted">
+                            Third-level configuration is only available when the grandparent uses "Rich Columns" layout
+                            and the parent shows third-level categories (not set to "Display as column").
+                          </Text>
+                        </div>
+                      )}
+
+                      {grandparent?.config?.menuLayout === "rich-columns" && !parent?.config?.displayAsColumn && (
+                        <>
+                          <div className="flex flex-col gap-y-2">
+                            <Label>Icon</Label>
+                            <Input
+                              value={categoryState.icon}
+                              onChange={(e) =>
+                                setCategoryState(prev => ({ ...prev, icon: e.target.value }))
+                              }
+                              placeholder="Icon name or identifier"
+                            />
+                          </div>
+
+                          <div className="flex flex-col gap-y-2">
+                            <Label>Thumbnail URL</Label>
+                            <Input
+                              value={categoryState.thumbnailUrl}
+                              onChange={(e) =>
+                                setCategoryState(prev => ({ ...prev, thumbnailUrl: e.target.value }))
+                              }
+                              placeholder="https://..."
+                            />
+                          </div>
+
+                          <div className="flex flex-col gap-y-2">
+                            <Label>Title</Label>
+                            <Input
+                              value={categoryState.title}
+                              onChange={(e) =>
+                                setCategoryState(prev => ({ ...prev, title: e.target.value }))
+                              }
+                              placeholder="Leave empty to use category name"
+                            />
+                          </div>
+
+                          <div className="flex flex-col gap-y-2">
+                            <Label>Subtitle</Label>
+                            <Input
+                              value={categoryState.subtitle}
+                              onChange={(e) =>
+                                setCategoryState(prev => ({ ...prev, subtitle: e.target.value }))
+                              }
+                              placeholder="Leave empty to use category description (clamped)"
+                            />
+                          </div>
+                        </>
+                      )}
+                    </>
+                  )}
+
+                  <div className="flex justify-end gap-x-2">
+                    <Button
+                      variant="secondary"
+                      onClick={() => setCategoryState(prev => ({ ...prev, selectedCategoryId: null }))}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={saveCategoryConfig}
+                      disabled={categoryState.loading || categoryState.saving}
+                      isLoading={categoryState.saving}
+                    >
+                      Save Category Configuration
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
-          </FocusModal.Body>
-          <FocusModal.Footer>
-            <div className="flex flex-1 items-center gap-3">
-              <Button
-                variant="secondary"
-                onClick={handleResetCategoryDraft}
-                disabled={categoryModal.loading}
-              >
-                Reset draft
-              </Button>
-              <Button
-                variant="danger"
-                onClick={() => void handleDeleteCategoryConfig()}
-                disabled={
-                  categoryModal.loading ||
-                  categoryModal.saving ||
-                  !categoryModal.config
-                }
-              >
-                Remove configuration
-              </Button>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="secondary" onClick={closeCategoryModal}>
-                Cancel
-              </Button>
-              <Button
-                onClick={() => void handleSaveCategory()}
-                loading={categoryModal.saving}
-                disabled={categoryModal.loading}
-              >
-                Save category configuration
-              </Button>
-            </div>
-          </FocusModal.Footer>
-        </FocusModal.Content>
-      </FocusModal>
+          </div>
+        </div>
+      </Container>
     </div>
   )
 }
