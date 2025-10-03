@@ -12,6 +12,7 @@ import {
   type MegaMenuFeaturedCard,
   type MegaMenuFeaturedCardConfig,
   type MegaMenuLayout,
+  type MegaMenuLegacyLayout,
   type MegaMenuLink,
   type MegaMenuLinkConfig,
   type MegaMenuModuleOptions,
@@ -22,10 +23,14 @@ import type { DynamicCategoryMenuItem } from "../dynamic-category-menu"
 const DEFAULT_BASE_HREF = "/store?category="
 const AUTO_ITEMS_CHUNK_SIZE = 3
 
-const LAYOUTS: MegaMenuLayout[] = ["default", "thumbnail-grid"]
+const MENU_LAYOUTS: MegaMenuLayout[] = ["no-menu", "simple-dropdown", "rich-columns"]
+const LEGACY_LAYOUTS: MegaMenuLegacyLayout[] = ["default", "thumbnail-grid"]
 
-const isMegaMenuLayout = (value: unknown): value is MegaMenuLayout =>
-  typeof value === "string" && LAYOUTS.includes(value as MegaMenuLayout)
+const isMenuLayout = (value: unknown): value is MegaMenuLayout =>
+  typeof value === "string" && MENU_LAYOUTS.includes(value as MegaMenuLayout)
+
+const isLegacyLayout = (value: unknown): value is MegaMenuLegacyLayout =>
+  typeof value === "string" && LEGACY_LAYOUTS.includes(value as MegaMenuLegacyLayout)
 
 type InjectedDependencies = {
   logger: Logger
@@ -35,8 +40,7 @@ type MegaMenuConfigEntity = InferEntityType<typeof MegaMenuConfig>
 
 type NormalizedOptions = {
   baseHref: string
-  defaultLayout: MegaMenuLayout
-  defaultTagline: string | null
+  defaultMenuLayout: MegaMenuLayout
 }
 
 const normalizeString = (value?: string | null): string => {
@@ -71,10 +75,9 @@ export default class MegaMenuService extends MedusaService({
     this.logger_ = dependencies.logger
     this.options_ = {
       baseHref: normalizeString(options.baseHref) || DEFAULT_BASE_HREF,
-      defaultLayout: isMegaMenuLayout(options.defaultLayout)
+      defaultMenuLayout: isMenuLayout(options.defaultLayout)
         ? options.defaultLayout
-        : "default",
-      defaultTagline: normalizeNullableString(options.defaultTagline)
+        : "simple-dropdown"
     }
   }
 
@@ -186,74 +189,98 @@ export default class MegaMenuService extends MedusaService({
     const categoryIds = [...categoryMap.keys()]
     const configMap = await this.getConfigMap(categoryIds)
     const globalConfig = await this.getGlobalConfig()
+    const defaultMenuLayout = globalConfig?.defaultMenuLayout || this.options_.defaultMenuLayout
+
+    // Build category hierarchy map to understand parent-child relationships
+    const parentMap = new Map<string, string>() // childId -> parentId
+    const buildParentMap = (items: DynamicCategoryMenuItem[], parentId?: string) => {
+      for (const item of items) {
+        if (parentId) {
+          parentMap.set(item.id, parentId)
+        }
+        if (item.children?.length) {
+          buildParentMap(item.children, item.id)
+        }
+      }
+    }
+    buildParentMap(navigation)
 
     const apply = async (
-      items: DynamicCategoryMenuItem[]
+      items: DynamicCategoryMenuItem[],
+      depth: number = 0
     ): Promise<MegaMenuNavigationItem[]> => {
-      return Promise.all(items.map(async item => {
-        const megaMenu = await this.resolveMegaMenuContent(
-          item.id,
-          configMap,
-          globalConfig,
-          categoryMap
-        )
+      const results: MegaMenuNavigationItem[] = []
 
-        return {
-          ...item,
-          children: await apply(item.children ?? []),
-          megaMenu
+      for (const item of items) {
+        const config = configMap.get(item.id)
+
+        // Check if excluded from menu
+        if (config?.excludedFromMenu) {
+          continue
         }
-      }))
+
+        // Determine menu layout for this category
+        const menuLayout = config?.menuLayout || defaultMenuLayout
+
+        // Get parent config to determine what options are available
+        const parentId = parentMap.get(item.id)
+        const parentConfig = parentId ? configMap.get(parentId) : null
+        const parentMenuLayout = parentConfig?.menuLayout || defaultMenuLayout
+
+        // Build navigation item with appropriate fields based on depth
+        const navItem: MegaMenuNavigationItem = {
+          ...item,
+          menuLayout,
+          children: []
+        }
+
+        // Add second-level category fields (when parent has rich-columns layout)
+        if (depth === 1 && parentMenuLayout === "rich-columns") {
+          // Column display fields (used when displayAsColumn: true)
+          navItem.displayAsColumn = config?.displayAsColumn ?? null
+          navItem.columnTitle = config?.columnTitle ?? null
+          navItem.columnDescription = config?.columnDescription ?? null
+          navItem.columnImageUrl = config?.columnImageUrl ?? null
+          navItem.columnBadge = config?.columnBadge ?? null
+
+          // Item display fields (used when the second-level item is displayed in parent's menu)
+          navItem.icon = config?.icon ?? null
+          navItem.thumbnailUrl = config?.thumbnailUrl ?? null
+          navItem.title = config?.title ?? null
+          navItem.subtitle = config?.subtitle ?? null
+        }
+
+        // Add third-level category fields (when grandparent has rich-columns layout)
+        if (depth === 2) {
+          const grandparentId = parentId ? parentMap.get(parentId) : null
+          const grandparentConfig = grandparentId ? configMap.get(grandparentId) : null
+          const grandparentMenuLayout = grandparentConfig?.menuLayout || defaultMenuLayout
+
+          if (grandparentMenuLayout === "rich-columns") {
+            navItem.icon = config?.icon ?? null
+            navItem.thumbnailUrl = config?.thumbnailUrl ?? null
+            navItem.title = config?.title ?? null
+            navItem.subtitle = config?.subtitle ?? null
+          }
+        }
+
+        // Process children based on menu layout
+        if (menuLayout !== "no-menu" && item.children?.length) {
+          // Limit to 3 levels of depth
+          if (depth < 2) {
+            navItem.children = await apply(item.children, depth + 1)
+          }
+        }
+
+        results.push(navItem)
+      }
+
+      return results
     }
 
     return apply(navigation)
   }
 
-  protected async resolveMegaMenuContent(
-    categoryId: string,
-    configMap: Map<string, MegaMenuConfigDTO>,
-    globalConfig: MegaMenuConfigDTO | null,
-    categoryMap: Map<string, ProductCategoryDTO>
-  ): Promise<MegaMenuContent | null> {
-    const config = configMap.get(categoryId) ?? globalConfig
-
-    if (!config) {
-      return null
-    }
-
-    return this.buildMegaMenuContent(config, categoryMap, configMap)
-  }
-
-  protected async buildMegaMenuContent(
-    config: MegaMenuConfigDTO,
-    categoryMap: Map<string, ProductCategoryDTO>,
-    configMap: Map<string, MegaMenuConfigDTO>
-  ): Promise<MegaMenuContent | null> {
-    const layout = config.layout || this.options_.defaultLayout
-    const tagline = normalizeNullableString(config.tagline) ?? this.options_.defaultTagline
-
-    const manualColumns = this.buildManualColumns(config.columns, categoryMap)
-    const autoItems = await this.buildAutomaticItems(config.submenuCategoryIds, categoryMap, configMap)
-
-    let columns: MegaMenuColumn[] = manualColumns
-
-    if (!columns.length && autoItems.length) {
-      columns = await this.buildAutomaticColumns(autoItems, layout, config.metadata, configMap, config.submenuCategoryIds)
-    }
-
-    const featured = this.buildFeatured(config.featured)
-
-    if (!columns.length && !featured.length && !tagline) {
-      return null
-    }
-
-    return {
-      layout,
-      tagline,
-      columns,
-      featured: featured.length ? featured : undefined
-    }
-  }
 
   protected buildManualColumns(
     columns: MegaMenuColumnConfig[] | undefined,
@@ -540,25 +567,44 @@ export default class MegaMenuService extends MedusaService({
       )
     }
 
-    const layout: MegaMenuLayout = isMegaMenuLayout(data.layout)
-      ? data.layout!
-      : this.options_.defaultLayout
-
     return {
       category_id: categoryId,
-      layout,
+
+      // Global config field
+      default_menu_layout: data.defaultMenuLayout ? normalizeNullableString(data.defaultMenuLayout) as any : null,
+
+      // Per-category menu layout
+      menu_layout: data.menuLayout ? normalizeNullableString(data.menuLayout) as any : null,
+
+      // Category-level content fields
       tagline: normalizeNullableString(data.tagline),
       columns: this.normalizeColumns(data.columns) as any,
       featured: this.normalizeFeatured(data.featured) as any,
-      submenu_category_ids: this.normalizeSubmenuCategoryIds(
-        data.submenuCategoryIds
-      ) as any,
+      submenu_category_ids: this.normalizeSubmenuCategoryIds(data.submenuCategoryIds) as any,
       metadata: this.normalizeMetadata(data.metadata),
-      display_mode: normalizeNullableString(data.displayMode) as any,
-      column_layout: normalizeNullableString(data.columnLayout) as any,
+
+      // Second-level category configuration
+      display_as_column: data.displayAsColumn ?? null,
+      column_title: normalizeNullableString(data.columnTitle),
+      column_description: normalizeNullableString(data.columnDescription),
       column_image_url: normalizeNullableString(data.columnImageUrl),
       column_image_source: normalizeNullableString(data.columnImageSource) as any,
       column_badge: normalizeNullableString(data.columnBadge) as any,
+
+      // Third-level category configuration
+      icon: normalizeNullableString(data.icon),
+      thumbnail_url: normalizeNullableString(data.thumbnailUrl),
+      title: normalizeNullableString(data.title),
+      subtitle: normalizeNullableString(data.subtitle),
+
+      // Optional field to exclude category from menu
+      excluded_from_menu: data.excludedFromMenu ?? false,
+
+      // Legacy fields
+      layout: data.layout ? normalizeNullableString(data.layout) as any : null,
+      display_mode: normalizeNullableString(data.displayMode) as any,
+      column_layout: normalizeNullableString(data.columnLayout) as any,
+
       deleted_at: null
     }
   }
@@ -650,9 +696,14 @@ export default class MegaMenuService extends MedusaService({
     return {
       id: entity.id,
       categoryId: entity.category_id,
-      layout: isMegaMenuLayout(entity.layout)
-        ? entity.layout
-        : this.options_.defaultLayout,
+
+      // Global config field
+      defaultMenuLayout: normalizeNullableString((entity as any).default_menu_layout) as any,
+
+      // Per-category menu layout
+      menuLayout: normalizeNullableString((entity as any).menu_layout) as any,
+
+      // Category-level content fields
       tagline: normalizeNullableString(entity.tagline),
       columns: Array.isArray(entity.columns)
         ? (entity.columns as MegaMenuColumnConfig[])
@@ -666,43 +717,38 @@ export default class MegaMenuService extends MedusaService({
       metadata: isRecord(entity.metadata)
         ? (entity.metadata as Record<string, unknown>)
         : null,
-      displayMode: normalizeNullableString((entity as any).display_mode) as any,
-      columnLayout: normalizeNullableString((entity as any).column_layout) as any,
+
+      // Second-level category configuration
+      displayAsColumn: (entity as any).display_as_column ?? null,
+      columnTitle: normalizeNullableString((entity as any).column_title),
+      columnDescription: normalizeNullableString((entity as any).column_description),
       columnImageUrl: normalizeNullableString((entity as any).column_image_url),
       columnImageSource: normalizeNullableString((entity as any).column_image_source) as any,
       columnBadge: normalizeNullableString((entity as any).column_badge) as any,
+
+      // Third-level category configuration
+      icon: normalizeNullableString((entity as any).icon),
+      thumbnailUrl: normalizeNullableString((entity as any).thumbnail_url),
+      title: normalizeNullableString((entity as any).title),
+      subtitle: normalizeNullableString((entity as any).subtitle),
+
+      // Optional field to exclude category from menu
+      excludedFromMenu: (entity as any).excluded_from_menu ?? false,
+
+      // Legacy fields
+      layout: normalizeNullableString((entity as any).layout) as any,
+      displayMode: normalizeNullableString((entity as any).display_mode) as any,
+      columnLayout: normalizeNullableString((entity as any).column_layout) as any,
+
       createdAt: entity.created_at,
       updatedAt: entity.updated_at
     }
   }
 
-  getDefaults(): { layout: MegaMenuLayout; tagline: string | null; baseHref: string } {
+  getDefaults(): { defaultMenuLayout: MegaMenuLayout; baseHref: string } {
     return {
-      layout: this.options_.defaultLayout,
-      tagline: this.options_.defaultTagline ?? null,
+      defaultMenuLayout: this.options_.defaultMenuLayout,
       baseHref: this.options_.baseHref
     }
-  }
-
-  async buildPreview(
-    config: MegaMenuConfigDTO | null,
-    categories: ProductCategoryDTO[]
-  ): Promise<MegaMenuContent | null> {
-    if (!config) {
-      return null
-    }
-
-    const categoryMap = new Map<string, ProductCategoryDTO>()
-    for (const category of categories) {
-      if (category?.id) {
-        categoryMap.set(category.id, category)
-      }
-    }
-
-    // Collect all category IDs from the config to fetch their configurations
-    const categoryIds = config.submenuCategoryIds ?? []
-    const configMap = await this.getConfigMap(categoryIds)
-
-    return this.buildMegaMenuContent(config, categoryMap, configMap)
   }
 }
