@@ -1,4 +1,8 @@
-export type MegaMenuLayout = "default" | "thumbnail-grid"
+// New menu layout types
+export type MegaMenuLayout = "no-menu" | "simple-dropdown" | "rich-columns"
+
+// Legacy types (kept for backward compatibility)
+export type MegaMenuLegacyLayout = "default" | "thumbnail-grid"
 export type MegaMenuDisplayMode = "simple-dropdown" | "columns"
 export type MegaMenuColumnLayout = "image" | "image-with-text" | "subcategory-icons" | "text-and-icons"
 export type MegaMenuColumnImageSource = "upload" | "product"
@@ -34,37 +38,82 @@ export type MegaMenuFeaturedCardConfig = {
 
 export type MegaMenuConfigInput = {
   categoryId: string
-  layout?: MegaMenuLayout
+
+  // Global config field (only used for global config)
+  defaultMenuLayout?: MegaMenuLayout | null
+
+  // Per-category menu layout (inherits from global if not set)
+  menuLayout?: MegaMenuLayout | null
+
+  // Category-level content fields (not used for global config)
   tagline?: string | null
   columns?: MegaMenuColumnConfig[] | null
   featured?: MegaMenuFeaturedCardConfig[] | null
   submenuCategoryIds?: string[] | null
   metadata?: Record<string, unknown> | null
-  // Parent category configuration
-  displayMode?: MegaMenuDisplayMode | null
-  // Subcategory column configuration
-  columnLayout?: MegaMenuColumnLayout | null
+
+  // Second-level category configuration
+  displayAsColumn?: boolean | null // true = title/image/description, false = third-level list
+  columnTitle?: string | null
+  columnDescription?: string | null
   columnImageUrl?: string | null
   columnImageSource?: MegaMenuColumnImageSource | null
   columnBadge?: MegaMenuColumnBadge | null
+
+  // Third-level category configuration
+  icon?: string | null
+  thumbnailUrl?: string | null
+  title?: string | null
+  subtitle?: string | null
+
+  // Optional field to exclude category from menu while retaining config
+  excludedFromMenu?: boolean
+
+  // Legacy fields (kept for backward compatibility)
+  layout?: MegaMenuLegacyLayout
+  displayMode?: MegaMenuDisplayMode | null
+  columnLayout?: MegaMenuColumnLayout | null
 }
 
 export type MegaMenuConfigDTO = {
   id: string
   categoryId: string
-  layout: MegaMenuLayout
+
+  // Global config field
+  defaultMenuLayout: MegaMenuLayout | null
+
+  // Per-category menu layout
+  menuLayout: MegaMenuLayout | null
+
+  // Category-level content fields
   tagline: string | null
   columns: MegaMenuColumnConfig[]
   featured: MegaMenuFeaturedCardConfig[]
   submenuCategoryIds: string[]
   metadata: Record<string, unknown> | null
-  // Parent category configuration
-  displayMode: MegaMenuDisplayMode | null
-  // Subcategory column configuration
-  columnLayout: MegaMenuColumnLayout | null
+
+  // Second-level category configuration
+  displayAsColumn: boolean | null
+  columnTitle: string | null
+  columnDescription: string | null
   columnImageUrl: string | null
   columnImageSource: MegaMenuColumnImageSource | null
   columnBadge: MegaMenuColumnBadge | null
+
+  // Third-level category configuration
+  icon: string | null
+  thumbnailUrl: string | null
+  title: string | null
+  subtitle: string | null
+
+  // Optional field to exclude category from menu
+  excludedFromMenu: boolean
+
+  // Legacy fields
+  layout: MegaMenuLegacyLayout | null
+  displayMode: MegaMenuDisplayMode | null
+  columnLayout: MegaMenuColumnLayout | null
+
   createdAt: Date
   updatedAt: Date
 }
@@ -99,7 +148,7 @@ export type MegaMenuFeaturedCard = {
 }
 
 export type MegaMenuContent = {
-  layout: MegaMenuLayout
+  menuLayout: MegaMenuLayout
   tagline?: string | null
   columns: MegaMenuColumn[]
   featured?: MegaMenuFeaturedCard[]
@@ -110,8 +159,20 @@ export type MegaMenuNavigationItem = {
   label: string
   href: string
   subLabel?: string
+  menuLayout?: MegaMenuLayout | null
   children: MegaMenuNavigationItem[]
   megaMenu?: MegaMenuContent | null
+  // Second-level category fields
+  displayAsColumn?: boolean | null
+  columnTitle?: string | null
+  columnDescription?: string | null
+  columnImageUrl?: string | null
+  columnBadge?: MegaMenuColumnBadge | null
+  // Third-level category fields
+  icon?: string | null
+  thumbnailUrl?: string | null
+  title?: string | null
+  subtitle?: string | null
 }
 
 export type MegaMenuModuleOptions = {
