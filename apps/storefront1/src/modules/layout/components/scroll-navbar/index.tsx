@@ -35,18 +35,69 @@ interface MegaMenuContentTransitionProps {
   openMegaMenuItem: string | null
   navigation: NavItem[]
   onNavigate: () => void
+  menuItemRef: HTMLDivElement | null
+  containerRef: HTMLDivElement | null
 }
 
-const MegaMenuContentTransition = ({ openMegaMenuItem, navigation, onNavigate }: MegaMenuContentTransitionProps) => {
+const MegaMenuContentTransition = ({ openMegaMenuItem, navigation, onNavigate, menuItemRef, containerRef }: MegaMenuContentTransitionProps) => {
   const [measuredHeight, setMeasuredHeight] = React.useState<number | null>(null)
+  const [menuPosition, setMenuPosition] = React.useState<{ left: number; maxWidth: number } | null>(null)
   const resizeObserverRef = React.useRef<ResizeObserver | null>(null)
+  const panelRef = React.useRef<HTMLDivElement | null>(null)
 
   const currentMegaMenuItem = React.useMemo(
     () => navigation.find(item => item.label === openMegaMenuItem && Boolean(item.megaMenu)),
     [navigation, openMegaMenuItem]
   )
 
+  // Calculate position when menu item or panel changes
+  React.useEffect(() => {
+    if (!menuItemRef || !containerRef || !panelRef.current) {
+      setMenuPosition(null)
+      return
+    }
+
+    const calculatePosition = () => {
+      const containerRect = containerRef.getBoundingClientRect()
+      const menuItemRect = menuItemRef.getBoundingClientRect()
+      const panelWidth = panelRef.current?.offsetWidth || 0
+
+      // Position relative to container
+      const menuItemLeft = menuItemRect.left - containerRect.left
+      const menuItemCenter = menuItemLeft + (menuItemRect.width / 2)
+
+      // Calculate desired left position (centered under menu item)
+      let left = menuItemCenter - (panelWidth / 2)
+
+      // Ensure menu doesn't overflow left
+      const minLeft = 24 // 24px padding from left edge
+      if (left < minLeft) {
+        left = minLeft
+      }
+
+      // Ensure menu doesn't overflow right
+      const maxLeft = containerRect.width - panelWidth - 24 // 24px padding from right edge
+      if (left > maxLeft) {
+        left = Math.max(minLeft, maxLeft)
+      }
+
+      setMenuPosition({
+        left,
+        maxWidth: containerRect.width - 48 // 24px padding on each side
+      })
+    }
+
+    // Calculate immediately
+    calculatePosition()
+
+    // Recalculate on resize
+    window.addEventListener('resize', calculatePosition)
+    return () => window.removeEventListener('resize', calculatePosition)
+  }, [menuItemRef, containerRef, openMegaMenuItem])
+
   const handlePanelRef = React.useCallback((node: HTMLDivElement | null) => {
+    panelRef.current = node
+
     if (resizeObserverRef.current) {
       resizeObserverRef.current.disconnect()
       resizeObserverRef.current = null
@@ -87,11 +138,15 @@ const MegaMenuContentTransition = ({ openMegaMenuItem, navigation, onNavigate }:
   }
 
   return (
-    <div className="content-container">
+    <div className="content-container relative">
       <motion.div
         layout
-        className="relative min-h-[220px]"
-        style={{ height: measuredHeight ?? 'auto' }}
+        className="relative min-h-[220px] w-auto"
+        style={{
+          height: measuredHeight ?? 'auto',
+          left: menuPosition?.left ?? 0,
+          maxWidth: menuPosition?.maxWidth ?? '100%'
+        }}
         transition={{ duration: 0.24, ease: [0.22, 0.61, 0.36, 1] }}
       >
         <AnimatePresence initial={false} mode="sync">
@@ -102,7 +157,7 @@ const MegaMenuContentTransition = ({ openMegaMenuItem, navigation, onNavigate }:
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.18, ease: [0.22, 0.61, 0.36, 1] }}
-            className="absolute inset-0"
+            className="absolute left-0 top-0"
           >
             <MegaMenuPanel content={currentMegaMenuItem.megaMenu} onNavigate={onNavigate} />
           </motion.div>
@@ -188,14 +243,14 @@ const UtilityIconCluster = ({
 interface DesktopNavProps {
   items: NavItem[]
   merged?: boolean
-  onMegaMenuOpen?: (label: string) => void
+  onMegaMenuOpen?: (label: string, ref: HTMLDivElement) => void
   onMegaMenuClose?: () => void
   openMegaMenuItem?: string | null
 }
 
 const DesktopNav = ({ items, merged = false, onMegaMenuOpen, onMegaMenuClose, openMegaMenuItem }: DesktopNavProps) => {
-  const [openItem, setOpenItem] = React.useState<string | null>(null)
   const closeTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
+  const itemRefs = React.useRef<Map<string, HTMLDivElement>>(new Map())
 
   const handleOpen = (label: string) => {
     // Clear any pending close timeout
@@ -206,17 +261,17 @@ const DesktopNav = ({ items, merged = false, onMegaMenuOpen, onMegaMenuClose, op
 
     const navItem = items.find(item => item.label === label)
     if (navItem?.megaMenu && onMegaMenuOpen) {
-      // Instantly switch to new mega menu item
-      onMegaMenuOpen(label)
-    } else {
-      setOpenItem(label)
+      const ref = itemRefs.current.get(label)
+      if (ref) {
+        // Instantly switch to new mega menu item
+        onMegaMenuOpen(label, ref)
+      }
     }
   }
 
   const handleClose = () => {
     // Add delay before closing
     closeTimeoutRef.current = setTimeout(() => {
-      setOpenItem(null)
       if (onMegaMenuClose) {
         onMegaMenuClose()
       }
@@ -227,17 +282,21 @@ const DesktopNav = ({ items, merged = false, onMegaMenuOpen, onMegaMenuClose, op
   return (
     <div className="flex flex-row justify-center gap-2 lg:gap-6">
       {items.map((navItem) => {
-        const isOpen = openItem === navItem.label || openMegaMenuItem === navItem.label
-        const children = navItem.children ?? []
-        const hasChildren = children.length > 0
         const hasMegaMenu = Boolean(navItem.megaMenu)
 
         return (
           <div
             key={navItem.label}
+            ref={(el) => {
+              if (el) {
+                itemRefs.current.set(navItem.label, el)
+              } else {
+                itemRefs.current.delete(navItem.label)
+              }
+            }}
             className="relative"
-            onMouseEnter={() => (hasChildren || hasMegaMenu) && handleOpen(navItem.label)}
-            onFocusCapture={() => (hasChildren || hasMegaMenu) && handleOpen(navItem.label)}
+            onMouseEnter={() => hasMegaMenu && handleOpen(navItem.label)}
+            onFocusCapture={() => hasMegaMenu && handleOpen(navItem.label)}
             onBlurCapture={(event) => {
               const nextTarget = event.relatedTarget as Node | null
               if (!nextTarget || !event.currentTarget.contains(nextTarget)) {
@@ -252,29 +311,6 @@ const DesktopNav = ({ items, merged = false, onMegaMenuOpen, onMegaMenuClose, op
             >
               {navItem.label}
             </LocalizedClientLink>
-
-            <AnimatePresence>
-              {hasChildren && !hasMegaMenu && isOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                  transition={{
-                    duration: 0.15,
-                    ease: [0.16, 1, 0.3, 1]
-                  }}
-                  className="absolute left-0 top-full flex min-w-[16rem] flex-col gap-2 rounded-xl border border-border bg-popover p-4 text-sm text-popover-foreground shadow-xl"
-                >
-                  {children.map((child) => (
-                    <DesktopSubNav
-                      key={child.label}
-                      {...child}
-                      onSelect={handleClose}
-                    />
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
         )
       })}
@@ -282,31 +318,16 @@ const DesktopNav = ({ items, merged = false, onMegaMenuOpen, onMegaMenuClose, op
   )
 }
 
-const DesktopSubNav = ({ label, href, subLabel, onSelect }: NavItem & { onSelect?: () => void }) => {
-  return (
-    <LocalizedClientLink
-      href={href ?? '#'}
-      className="group rounded-md p-2 transition-colors hover:bg-muted/60"
-      onClick={onSelect}
-    >
-      <div className="flex flex-col">
-        <span className="font-semibold text-foreground transition-colors group-hover:text-primary">
-          {label}
-        </span>
-        {subLabel && (
-          <span className="text-sm text-muted-foreground">{subLabel}</span>
-        )}
-      </div>
-    </LocalizedClientLink>
-  )
-}
 
 export default function ScrollNavbar({ regions, navigationItems, cart }: ScrollNavbarProps) {
   const { isNavbarMerged, iconOpacity } = useScrollNavbar()
   const [openMegaMenuItem, setOpenMegaMenuItem] = React.useState<string | null>(null)
+  const [menuItemRef, setMenuItemRef] = React.useState<HTMLDivElement | null>(null)
   const closeTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
+  const containerRef = React.useRef<HTMLDivElement | null>(null)
+  const mergedContainerRef = React.useRef<HTMLDivElement | null>(null)
 
-  const handleMegaMenuOpen = (label: string) => {
+  const handleMegaMenuOpen = (label: string, ref: HTMLDivElement) => {
     // Clear any pending close timeout
     if (closeTimeoutRef.current) {
       clearTimeout(closeTimeoutRef.current)
@@ -314,12 +335,14 @@ export default function ScrollNavbar({ regions, navigationItems, cart }: ScrollN
     }
     // Instantly switch to new item
     setOpenMegaMenuItem(label)
+    setMenuItemRef(ref)
   }
 
   const handleMegaMenuClose = () => {
     // Add delay before closing
     closeTimeoutRef.current = setTimeout(() => {
       setOpenMegaMenuItem(null)
+      setMenuItemRef(null)
       closeTimeoutRef.current = null
     }, 200) // 200ms delay for smoother transitions
   }
@@ -405,6 +428,7 @@ export default function ScrollNavbar({ regions, navigationItems, cart }: ScrollN
         {!isNavbarMerged && (
           <div
             id="horizontal-nav"
+            ref={containerRef}
             className="relative z-50 hidden bg-primary md:block"
             onMouseLeave={handleMegaMenuClose}
           >
@@ -449,6 +473,8 @@ export default function ScrollNavbar({ regions, navigationItems, cart }: ScrollN
                   openMegaMenuItem={openMegaMenuItem}
                   navigation={navigationItems}
                   onNavigate={handleMegaMenuClose}
+                  menuItemRef={menuItemRef}
+                  containerRef={containerRef.current}
                 />
               </motion.div>
             )}
@@ -461,6 +487,7 @@ export default function ScrollNavbar({ regions, navigationItems, cart }: ScrollN
           {isNavbarMerged && (
             <motion.div
               key="merged-horizontal-nav"
+              ref={mergedContainerRef}
               initial={{ opacity: 0, y: -16 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
@@ -542,6 +569,8 @@ export default function ScrollNavbar({ regions, navigationItems, cart }: ScrollN
                       openMegaMenuItem={openMegaMenuItem}
                       navigation={navigationItems}
                       onNavigate={handleMegaMenuClose}
+                      menuItemRef={menuItemRef}
+                      containerRef={mergedContainerRef.current}
                     />
                   </motion.div>
                 )}

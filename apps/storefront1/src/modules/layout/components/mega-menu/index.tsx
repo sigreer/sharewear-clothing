@@ -64,11 +64,11 @@ const MegaMenuPanel: React.FC<MegaMenuPanelProps> = ({ content, onNavigate }) =>
   const renderDefaultLayout = () => (
     <div className="flex flex-col gap-6">
       <div className="flex-1">
-        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <div className="grid gap-6 auto-cols-max" style={{ gridTemplateColumns: `repeat(${content.columns.length}, minmax(240px, 280px))` }}>
           {content.columns.map((column, index) => (
             <motion.div
               key={column.heading}
-              className="space-y-4"
+              className="space-y-4 min-w-[240px]"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{
@@ -190,11 +190,11 @@ const MegaMenuPanel: React.FC<MegaMenuPanelProps> = ({ content, onNavigate }) =>
 
   const renderThumbnailGridLayout = () => (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
+      <div className="grid gap-6" style={{ gridTemplateColumns: `repeat(${Math.min(content.columns.length, 3)}, minmax(240px, 280px))` }}>
         {content.columns.map((column, index) => (
           <motion.div
             key={column.heading || `column-${index}`}
-            className="space-y-4"
+            className="space-y-4 min-w-[240px]"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{
@@ -264,7 +264,7 @@ const MegaMenuPanel: React.FC<MegaMenuPanelProps> = ({ content, onNavigate }) =>
   const isThumbnailGrid = content.layout === 'thumbnail-grid'
 
   return (
-    <div className="flex w-full flex-col gap-6 rounded-b-md border-2 border-t-0 bg-background p-6 text-popover-foreground shadow-2xl">
+    <div className="flex w-auto max-w-fit flex-col gap-6 rounded-b-md border-2 border-t-0 bg-background p-6 text-popover-foreground shadow-2xl">
       {content.tagline ? (
         <p className="text-base font-medium text-muted-foreground">
           {content.tagline}
