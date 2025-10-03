@@ -7,9 +7,9 @@ import { listCollections } from "@lib/data/collections"
 import { getRegion } from "@lib/data/regions"
 
 export const metadata: Metadata = {
-  title: "ADHD Toys - Ecommerce Platform",
+  title: "Sharewear Clothing",
   description:
-    "ADHD Toys ecommerce platform built with Medusa v2 and Next.js 15.",
+    "The finest in Geek Chic",
 }
 
 export default async function Home(props: {
