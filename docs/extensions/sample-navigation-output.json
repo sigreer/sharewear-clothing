@@ -1,0 +1,64 @@
+{
+  "items": [
+    {
+      "id": "pcat_01K56YQWBTVCSJJ1MC30J81AKS",
+      "label": "T-Shirts",
+      "href": "/store?category=t-shirts",
+      "subLabel": "",
+      "children": [
+        {
+          "id": "pcat_01K56YQWBTE7928Z6B4NEM94BW",
+          "label": "Sweatshirts",
+          "href": "/store?category=sweatshirts",
+          "subLabel": "",
+          "children": [
+            {
+              "id": "pcat_01K56YQWBVWAHDY863YF1H6D41",
+              "label": "Merch",
+              "href": "/store?category=merch",
+              "subLabel": "",
+              "children": [],
+              "menuLayout": "simple-dropdown",
+              "icon": null,
+              "thumbnailUrl": null,
+              "title": null,
+              "subtitle": null
+            }
+          ],
+          "menuLayout": "simple-dropdown",
+          "displayAsColumn": null,
+          "columnTitle": null,
+          "columnDescription": null,
+          "columnImageUrl": "https://medusa-public-images.s3.eu-west-1.amazonaws.com/sweatshirt-vintage-front.png",
+          "columnBadge": "new"
+        }
+      ],
+      "menuLayout": "rich-columns"
+    },
+    {
+      "id": "pcat_01K56YQWBTR2JSN2WQ8FC8DEQ0",
+      "label": "Pants",
+      "href": "/store?category=pants",
+      "subLabel": "",
+      "children": [],
+      "menuLayout": "simple-dropdown"
+    },
+    {
+      "id": "pcat_01K687YQ699HN7AW83NFPN6SX8",
+      "label": "Gadgets & Gizmos",
+      "href": "/store?category=gadgets-and-gizmos",
+      "subLabel": "Gadgets, gizmos, desk toys, fun stuff.",
+      "children": [
+        {
+          "id": "pcat_01K6882XDBM34H5AFQK07NXJXK",
+          "label": "Backpackage.json",
+          "href": "/store?category=backpackage-json",
+          "subLabel": "Exclusive BackPackage.json line of dev backpacks, laptop cases and bags.",
+          "children": [],
+          "menuLayout": "simple-dropdown"
+        }
+      ],
+      "menuLayout": "simple-dropdown"
+    }
+  ]
+}

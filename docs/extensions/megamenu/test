@@ -1,0 +1,38 @@
+> I need to make some
+  fixes and improvements to the megamenu
+  implementation across both the front and backend.
+
+  1. Remove the duplicated menu system that exists on
+  the frontend. For example, when hovering over the
+  gadgets & gizmos navbar option a sub-menu appears,
+  but it has different styling to the megamenu and
+  does not disappear even after the mouse hovers off.
+  The only logic that should exist on the frontend for
+  sub-menus is the megamenu logic. Please remove
+  anything that doesn't relate to this.
+  2. The Megamenu backend extension options are poorly
+  designed and not very intuitive. At present, there
+  are two tabs - one for Global Config and another for
+  Categories. However, there is only one option that
+  exists for global config which takes up a single
+  line on screen. It's a complete waste of space and
+  totally unnecessary to hide the categories behind a
+  tab. Can you move the categories tab under the
+  global config tab as a fixed section (so, two
+  separate, fixed sections).
+  3. My original spec
+  @docs/extensions/megamenu/MEGAMENU.md described a
+  tree-like structure but you explained that the
+  component would require extensive work to accomplish
+  this. You instead suggested using a dropdown box
+  which selects the category and when selected the
+  category's options are revealed. However, I've since
+  noticed that category trees already exist in
+  several different styles, all very similar to what I
+  described. As such, I'd like to go back to this
+  feature and reimplement it with a tree-like
+  structure where each category's options are revealed
+  in the righthand column when the tree item is
+  clicked on.
+
+  Can you review the above and pass to the Orchestration Agent in a suitable format. The orcehstration agent will need to set up the workflow directories. However, I've already created the index item.
