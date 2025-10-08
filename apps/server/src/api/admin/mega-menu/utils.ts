@@ -4,6 +4,7 @@ import type {
   MegaMenuConfigInput,
   MegaMenuLinkConfig
 } from "../../../modules/mega-menu"
+import { isValidLucideIconName } from "../../../modules/mega-menu"
 
 const ensureArray = <T>(value: unknown): T[] => {
   if (Array.isArray(value)) {
@@ -68,6 +69,58 @@ export const collectCategoryIdsFromConfig = (
   return Array.from(ids)
 }
 
+/**
+ * Validates icon field and logs warnings for invalid LucideReact icon names.
+ * Does not throw errors to allow flexibility for future icon additions.
+ *
+ * @param icon - The icon name to validate
+ * @param context - Context information for logging (e.g., "category config", "menu link")
+ */
+export const validateIconField = (
+  icon: string | null | undefined,
+  context: string = "icon field"
+): void => {
+  if (!icon) {
+    return // null/undefined is valid
+  }
+
+  if (!isValidLucideIconName(icon)) {
+    console.warn(
+      `[MegaMenu] Invalid LucideReact icon name "${icon}" in ${context}. ` +
+      `Icon names should follow PascalCase convention (e.g., 'ShoppingBag', 'Heart'). ` +
+      `See https://lucide.dev/icons for available icons.`
+    )
+  }
+}
+
+/**
+ * Validates icon fields in columns configuration.
+ * Logs warnings for invalid icon names without blocking the request.
+ *
+ * @param columns - The columns configuration to validate
+ */
+export const validateColumnsIcons = (
+  columns?: MegaMenuColumnConfig[] | null
+): void => {
+  if (!Array.isArray(columns)) {
+    return
+  }
+
+  for (let i = 0; i < columns.length; i++) {
+    const column = columns[i]
+    if (!column?.items || !Array.isArray(column.items)) {
+      continue
+    }
+
+    for (let j = 0; j < column.items.length; j++) {
+      const item = column.items[j]
+      if (item?.icon) {
+        validateIconField(item.icon, `column[${i}].items[${j}].icon`)
+      }
+    }
+  }
+}
+
 export const pickMegaMenuPayload = (
   body: any
 ): Partial<MegaMenuConfigInput> => {
@@ -110,6 +163,10 @@ export const pickMegaMenuPayload = (
     icon,
     thumbnailUrl,
     thumbnail_url,
+    selectedThumbnailProductId,
+    selected_thumbnail_product_id,
+    selectedThumbnailImageId,
+    selected_thumbnail_image_id,
     title,
     subtitle,
 
@@ -143,6 +200,8 @@ export const pickMegaMenuPayload = (
     columnBadge: (columnBadge ?? column_badge) as MegaMenuConfigInput["columnBadge"],
     icon: icon as MegaMenuConfigInput["icon"],
     thumbnailUrl: (thumbnailUrl ?? thumbnail_url) as MegaMenuConfigInput["thumbnailUrl"],
+    selectedThumbnailProductId: (selectedThumbnailProductId ?? selected_thumbnail_product_id) as MegaMenuConfigInput["selectedThumbnailProductId"],
+    selectedThumbnailImageId: (selectedThumbnailImageId ?? selected_thumbnail_image_id) as MegaMenuConfigInput["selectedThumbnailImageId"],
     title: title as MegaMenuConfigInput["title"],
     subtitle: subtitle as MegaMenuConfigInput["subtitle"],
     excludedFromMenu: (excludedFromMenu ?? excluded_from_menu) as MegaMenuConfigInput["excludedFromMenu"],

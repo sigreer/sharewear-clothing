@@ -179,6 +179,24 @@
           "nullable": true,
           "mappedType": "text"
         },
+        "selected_thumbnail_product_id": {
+          "name": "selected_thumbnail_product_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "selected_thumbnail_image_id": {
+          "name": "selected_thumbnail_image_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
         "title": {
           "name": "title",
           "type": "text",

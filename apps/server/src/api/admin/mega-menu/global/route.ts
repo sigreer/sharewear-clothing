@@ -5,7 +5,7 @@ import {
   type MegaMenuConfigDTO,
   type MegaMenuService
 } from "../../../../modules/mega-menu"
-import { pickMegaMenuPayload } from "../utils"
+import { pickMegaMenuPayload, validateIconField, validateColumnsIcons } from "../utils"
 
 type GlobalMegaMenuResponse = {
   config: MegaMenuConfigDTO | null
@@ -25,10 +25,27 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   res.json(payload)
 }
 
+/**
+ * PUT /admin/mega-menu/global
+ *
+ * Updates global mega-menu configuration.
+ *
+ * Icon Field: The `icon` field accepts LucideReact icon names (e.g., 'ShoppingBag', 'Heart', 'Star').
+ * Icons should follow PascalCase naming convention. See https://lucide.dev/icons for available icons.
+ * Invalid icon names will log warnings but won't block the request.
+ */
 export async function PUT(req: MedusaRequest, res: MedusaResponse) {
   const megaMenuService = req.scope.resolve<MegaMenuService>(MEGA_MENU_MODULE)
 
   const body = pickMegaMenuPayload(req.body)
+
+  // Validate icon fields (logs warnings, doesn't block)
+  if (body.icon) {
+    validateIconField(body.icon, "global config icon")
+  }
+  if (body.columns) {
+    validateColumnsIcons(body.columns)
+  }
 
   const updated = await megaMenuService.upsertGlobalConfig({
     ...body,

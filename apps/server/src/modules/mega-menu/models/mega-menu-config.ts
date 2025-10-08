@@ -33,8 +33,12 @@ const MegaMenuConfig = model.define(
     column_badge: model.enum(["new", "offers", "free-shipping", "featured"]).nullable(),
 
     // Third-level category configuration
+    // Stores LucideReact icon name (e.g., 'ShoppingBag', 'Heart', 'Star')
+    // @see https://lucide.dev/icons for available icons
     icon: model.text().nullable(),
     thumbnail_url: model.text().nullable(),
+    selected_thumbnail_product_id: model.text().nullable(),
+    selected_thumbnail_image_id: model.text().nullable(),
     title: model.text().nullable(),
     subtitle: model.text().nullable(),
 

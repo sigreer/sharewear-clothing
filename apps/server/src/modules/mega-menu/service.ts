@@ -594,6 +594,8 @@ export default class MegaMenuService extends MedusaService({
       // Third-level category configuration
       icon: normalizeNullableString(data.icon),
       thumbnail_url: normalizeNullableString(data.thumbnailUrl),
+      selected_thumbnail_product_id: normalizeNullableString(data.selectedThumbnailProductId),
+      selected_thumbnail_image_id: normalizeNullableString(data.selectedThumbnailImageId),
       title: normalizeNullableString(data.title),
       subtitle: normalizeNullableString(data.subtitle),
 
@@ -729,6 +731,8 @@ export default class MegaMenuService extends MedusaService({
       // Third-level category configuration
       icon: normalizeNullableString((entity as any).icon),
       thumbnailUrl: normalizeNullableString((entity as any).thumbnail_url),
+      selectedThumbnailProductId: normalizeNullableString((entity as any).selected_thumbnail_product_id),
+      selectedThumbnailImageId: normalizeNullableString((entity as any).selected_thumbnail_image_id),
       title: normalizeNullableString((entity as any).title),
       subtitle: normalizeNullableString((entity as any).subtitle),
 
