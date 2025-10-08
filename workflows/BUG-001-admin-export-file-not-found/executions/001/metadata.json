@@ -1,0 +1,16 @@
+{
+  "workflow_id": "BUG-001",
+  "execution_number": 1,
+  "started_at": "2025-10-04T19:13:00Z",
+  "completed_at": "2025-10-04T20:05:00Z",
+  "status": "completed",
+  "agents_invoked": [
+    "project-orchestrator",
+    "medusa-backend-developer",
+    "backend-qa-testing-specialist"
+  ],
+  "environment": "development",
+  "iterations": 3,
+  "qa_cycles": 2,
+  "deployment_approved": true
+}

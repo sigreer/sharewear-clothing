@@ -1,0 +1,11 @@
+{
+  "workflow_id": "FEAT-003",
+  "execution_number": 1,
+  "started_at": "2025-10-04T00:00:00Z",
+  "status": "in_progress",
+  "agents_invoked": [
+    "technical-planning-architect",
+    "project-orchestrator"
+  ],
+  "environment": "development"
+}

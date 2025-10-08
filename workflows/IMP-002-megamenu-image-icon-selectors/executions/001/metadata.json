@@ -1,0 +1,8 @@
+{
+  "workflow_id": "IMP-002",
+  "execution_number": 1,
+  "started_at": "2025-10-04T00:00:00Z",
+  "status": "in_progress",
+  "agents_invoked": ["project-orchestrator"],
+  "environment": "development"
+}

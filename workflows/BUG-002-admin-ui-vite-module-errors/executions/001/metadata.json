@@ -1,0 +1,17 @@
+{
+  "workflow_id": "BUG-002",
+  "execution_number": 1,
+  "started_at": "2025-10-04T20:10:00Z",
+  "completed_at": "2025-10-04T20:35:00Z",
+  "status": "partial",
+  "agents_invoked": [
+    "project-orchestrator",
+    "medusa-backend-developer",
+    "backend-qa-testing-specialist"
+  ],
+  "environment": "development",
+  "trigger": "user_reported_hostname_replacement_side_effect",
+  "resolution": "vite_dev_server_limitation_documented",
+  "workaround": "use_localhost_for_admin_ui_in_development",
+  "production_impact": "none"
+}
