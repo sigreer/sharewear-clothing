@@ -5,6 +5,7 @@ import {
   Button,
   Checkbox,
   Container,
+  FocusModal,
   Heading,
   Input,
   Label,
@@ -13,14 +14,65 @@ import {
   toast
 } from "@medusajs/ui"
 import {
+  FormEvent,
   useCallback,
   useEffect,
+  useMemo,
   useState
 } from "react"
+import * as LucideIcons from "lucide-react"
 import type {
   MegaMenuConfigDTO,
   MegaMenuLayout
 } from "../../../../modules/mega-menu"
+import { COMMON_MENU_ICONS } from "../../../../modules/mega-menu/types"
+
+type ProductImage = {
+  id: string
+  url: string | null
+  alt_text: string | null
+  metadata: Record<string, unknown> | null
+}
+
+type ProductSummary = {
+  id: string
+  title: string
+  handle: string | null
+  description: string | null
+  thumbnail: string | null
+  images: ProductImage[]
+}
+
+type ResolvedThumbnail = {
+  id: string
+  url: string | null
+  alt_text: string | null
+}
+
+type ResolvedThumbnailProduct = {
+  id: string
+  title: string
+  handle: string | null
+}
+
+type ThumbnailModalState = {
+  open: boolean
+  categoryId: string | null
+  categoryName: string | null
+  searchInput: string
+  products: ProductSummary[]
+  selectedProductId: string | null
+  selectedImageId: string | null
+  loading: boolean
+  saving: boolean
+  error: string | null
+}
+
+type IconModalState = {
+  open: boolean
+  searchInput: string
+  selectedIcon: string | null
+}
 
 const MENU_LAYOUTS: { value: MegaMenuLayout; label: string; description: string }[] = [
   {
@@ -106,6 +158,11 @@ type CategoryState = {
   tagline: string
   columnsText: string
   featuredText: string
+  // Thumbnail selection fields
+  selectedThumbnailProductId: string | null
+  selectedThumbnailImageId: string | null
+  resolvedThumbnail: ResolvedThumbnail | null
+  resolvedThumbnailProduct: ResolvedThumbnailProduct | null
 }
 
 // Category Tree Component
@@ -192,6 +249,335 @@ const CategoryTree = ({ categories, selectedId, onSelect }: CategoryTreeProps) =
   )
 }
 
+// DynamicIcon Component
+const DynamicIcon = ({ name, size = 16, className = "" }: { name: string; size?: number; className?: string }) => {
+  const IconComponent = LucideIcons[name as keyof typeof LucideIcons] as any
+
+  if (!IconComponent || typeof IconComponent !== 'function') {
+    const HelpCircleIcon = LucideIcons.HelpCircle
+    return <HelpCircleIcon size={size} className={className} />
+  }
+
+  return <IconComponent size={size} className={className} />
+}
+
+// Icon Selector Modal Component
+interface IconSelectorModalProps {
+  modalState: IconModalState
+  onOpenChange: (open: boolean) => void
+  setModalState: (setter: (prev: IconModalState) => IconModalState) => void
+  onSelect: (iconName: string) => void
+}
+
+const IconSelectorModal = ({
+  modalState,
+  onOpenChange,
+  setModalState,
+  onSelect
+}: IconSelectorModalProps) => {
+  const filteredIcons = useMemo(() => {
+    const search = modalState.searchInput.toLowerCase().trim()
+    if (!search) {
+      return COMMON_MENU_ICONS
+    }
+    return COMMON_MENU_ICONS.filter(icon =>
+      icon.toLowerCase().includes(search)
+    )
+  }, [modalState.searchInput])
+
+  return (
+    <FocusModal open={modalState.open} onOpenChange={onOpenChange}>
+      <FocusModal.Content className="max-w-3xl">
+        <FocusModal.Header className="gap-1">
+          <Heading level="h2" className="text-xl">
+            Select an Icon
+          </Heading>
+          <Text size="small" className="text-ui-fg-muted">
+            Choose from {COMMON_MENU_ICONS.length} commonly used icons
+          </Text>
+        </FocusModal.Header>
+        <FocusModal.Body className="flex flex-col gap-4">
+          <Input
+            placeholder="Search icons by name..."
+            value={modalState.searchInput}
+            onChange={(e) =>
+              setModalState(prev => ({
+                ...prev,
+                searchInput: e.target.value
+              }))
+            }
+            autoFocus
+          />
+
+          <div className="h-96 overflow-y-auto rounded-md border border-ui-border-base bg-ui-bg-subtle p-4">
+            {filteredIcons.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-center">
+                <Text size="small" className="text-ui-fg-muted">
+                  No icons match your search.
+                </Text>
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 gap-3">
+                {filteredIcons.map(iconName => {
+                  const isSelected = iconName === modalState.selectedIcon
+                  return (
+                    <button
+                      key={iconName}
+                      type="button"
+                      onClick={() => {
+                        setModalState(prev => ({ ...prev, selectedIcon: iconName }))
+                        onSelect(iconName)
+                        onOpenChange(false)
+                      }}
+                      className={`flex flex-col items-center gap-2 rounded-md border p-3 transition ${
+                        isSelected
+                          ? "border-ui-border-strong bg-ui-bg-base"
+                          : "border-transparent hover:border-ui-border-base hover:bg-ui-bg-component"
+                      }`}
+                    >
+                      <DynamicIcon name={iconName} size={24} />
+                      <Text size="small" className="text-center break-words text-xs">
+                        {iconName}
+                      </Text>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </FocusModal.Body>
+        <FocusModal.Footer className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <Button
+            variant="secondary"
+            onClick={() => onOpenChange(false)}
+          >
+            Close
+          </Button>
+        </FocusModal.Footer>
+      </FocusModal.Content>
+    </FocusModal>
+  )
+}
+
+// Product Image Modal Component
+interface ProductImageModalProps {
+  modalState: ThumbnailModalState
+  onOpenChange: (open: boolean) => void
+  setModalState: (setter: (prev: ThumbnailModalState) => ThumbnailModalState) => void
+  onSearch: (e: FormEvent<HTMLFormElement>) => void
+  onSave: () => void
+}
+
+const ProductImageModal = ({
+  modalState,
+  onOpenChange,
+  setModalState,
+  onSearch,
+  onSave
+}: ProductImageModalProps) => {
+  const selectedProduct = useMemo(() => {
+    if (!modalState.selectedProductId) {
+      return null
+    }
+
+    return (
+      modalState.products.find(product => product.id === modalState.selectedProductId) ??
+      null
+    )
+  }, [modalState.products, modalState.selectedProductId])
+
+  return (
+    <FocusModal open={modalState.open} onOpenChange={onOpenChange}>
+      <FocusModal.Content className="max-w-4xl">
+        <FocusModal.Header className="gap-1">
+          <Heading level="h2" className="text-xl">
+            Choose a product image
+          </Heading>
+          <Text size="small" className="text-ui-fg-muted">
+            Pick a product from this category, then select one of its images to use as the thumbnail.
+          </Text>
+        </FocusModal.Header>
+        <FocusModal.Body className="flex flex-col gap-4">
+          {modalState.categoryName ? (
+            <div className="rounded-md border border-ui-border-base bg-ui-bg-subtle px-3 py-2">
+              <Text size="small" className="font-medium">
+                {modalState.categoryName}
+              </Text>
+            </div>
+          ) : null}
+
+          <form className="flex gap-2" onSubmit={onSearch}>
+            <Input
+              placeholder="Search products in this category"
+              value={modalState.searchInput}
+              onChange={event =>
+                setModalState(prev => ({
+                  ...prev,
+                  searchInput: event.target.value
+                }))
+              }
+            />
+            <Button type="submit" variant="secondary">
+              Search
+            </Button>
+          </form>
+
+          {modalState.error ? (
+            <Text size="small" className="text-ui-fg-error">
+              {modalState.error}
+            </Text>
+          ) : null}
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-2">
+              <Text size="small" className="font-medium text-ui-fg-subtle">
+                Products
+              </Text>
+              <div className="h-64 overflow-y-auto rounded-md border border-ui-border-base bg-ui-bg-subtle p-2">
+                {modalState.loading ? (
+                  <div className="flex h-full items-center justify-center">
+                    <Text size="small" className="text-ui-fg-muted">
+                      Loading products...
+                    </Text>
+                  </div>
+                ) : modalState.products.length === 0 ? (
+                  <div className="flex h-full items-center justify-center text-center">
+                    <Text size="small" className="text-ui-fg-muted">
+                      No products match this search.
+                    </Text>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {modalState.products.map(product => {
+                      const isSelected = product.id === modalState.selectedProductId
+                      return (
+                        <button
+                          key={product.id}
+                          type="button"
+                          onClick={() =>
+                            setModalState(prev => ({
+                              ...prev,
+                              selectedProductId: product.id,
+                              selectedImageId:
+                                prev.selectedProductId === product.id
+                                  ? prev.selectedImageId
+                                  : product.images[0]?.id ?? null
+                            }))
+                          }
+                          className={`w-full rounded-md border px-3 py-2 text-left transition ${
+                            isSelected
+                              ? "border-ui-border-strong bg-ui-bg-base"
+                              : "border-transparent hover:border-ui-border-base hover:bg-ui-bg-component"
+                          }`}
+                        >
+                          <Text size="small" className="font-medium">
+                            {product.title}
+                          </Text>
+                          <Text size="small" className="text-ui-fg-muted">
+                            {product.handle ? `/${product.handle}` : product.id}
+                          </Text>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Text size="small" className="font-medium text-ui-fg-subtle">
+                Images
+              </Text>
+              <div className="h-64 overflow-y-auto rounded-md border border-ui-border-base bg-ui-bg-subtle p-3">
+                {!selectedProduct ? (
+                  <div className="flex h-full items-center justify-center text-center">
+                    <Text size="small" className="text-ui-fg-muted">
+                      Choose a product to view its images.
+                    </Text>
+                  </div>
+                ) : selectedProduct.images.length === 0 ? (
+                  <div className="flex h-full items-center justify-center text-center">
+                    <Text size="small" className="text-ui-fg-muted">
+                      This product has no images.
+                    </Text>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    {selectedProduct.images.map(image => {
+                      const isSelected = image.id === modalState.selectedImageId
+                      return (
+                        <button
+                          key={image.id}
+                          type="button"
+                          onClick={() =>
+                            setModalState(prev => ({
+                              ...prev,
+                              selectedImageId: image.id
+                            }))
+                          }
+                          className={`flex flex-col gap-2 rounded-md border p-2 transition ${
+                            isSelected
+                              ? "border-ui-border-strong bg-ui-bg-base"
+                              : "border-transparent hover:border-ui-border-base hover:bg-ui-bg-component"
+                          }`}
+                        >
+                          <div className="relative aspect-square overflow-hidden rounded-sm bg-ui-bg-component">
+                            {image.url ? (
+                              <img
+                                src={image.url}
+                                alt={image.alt_text || "Product image"}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full items-center justify-center">
+                                <Text size="small" className="text-ui-fg-muted">
+                                  Missing image
+                                </Text>
+                              </div>
+                            )}
+                          </div>
+                          {image.alt_text && (
+                            <Text size="small" className="text-ui-fg-muted truncate">
+                              {image.alt_text}
+                            </Text>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </FocusModal.Body>
+        <FocusModal.Footer className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          {modalState.error ? (
+            <Text size="small" className="text-ui-fg-error">
+              {modalState.error}
+            </Text>
+          ) : null}
+          <div className="flex flex-row gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => onOpenChange(false)}
+              disabled={modalState.saving}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={onSave}
+              disabled={modalState.saving || !modalState.selectedProductId || !modalState.selectedImageId}
+              isLoading={modalState.saving}
+            >
+              Save selection
+            </Button>
+          </div>
+        </FocusModal.Footer>
+      </FocusModal.Content>
+    </FocusModal>
+  )
+}
+
 const MegaMenuPage = () => {
   // Global state
   const [globalState, setGlobalState] = useState<GlobalState>({
@@ -232,7 +618,32 @@ const MegaMenuPage = () => {
     excludedFromMenu: false,
     tagline: "",
     columnsText: "",
-    featuredText: ""
+    featuredText: "",
+    selectedThumbnailProductId: null,
+    selectedThumbnailImageId: null,
+    resolvedThumbnail: null,
+    resolvedThumbnailProduct: null
+  })
+
+  // Thumbnail modal state
+  const [thumbnailModalState, setThumbnailModalState] = useState<ThumbnailModalState>({
+    open: false,
+    categoryId: null,
+    categoryName: null,
+    searchInput: "",
+    products: [],
+    selectedProductId: null,
+    selectedImageId: null,
+    loading: false,
+    saving: false,
+    error: null
+  })
+
+  // Icon modal state
+  const [iconModalState, setIconModalState] = useState<IconModalState>({
+    open: false,
+    searchInput: "",
+    selectedIcon: null
   })
 
   // Load global config
@@ -407,7 +818,12 @@ const MegaMenuPage = () => {
         excludedFromMenu: data.config?.excludedFromMenu || false,
         tagline: data.config?.tagline || "",
         columnsText: data.config?.columns ? JSON.stringify(data.config.columns, null, 2) : "",
-        featuredText: data.config?.featured ? JSON.stringify(data.config.featured, null, 2) : ""
+        featuredText: data.config?.featured ? JSON.stringify(data.config.featured, null, 2) : "",
+        // Populate thumbnail selection fields
+        selectedThumbnailProductId: data.config?.selectedThumbnailProductId || null,
+        selectedThumbnailImageId: data.config?.selectedThumbnailImageId || null,
+        resolvedThumbnail: data.resolvedThumbnail || null,
+        resolvedThumbnailProduct: data.resolvedThumbnailProduct || null
       }))
     } catch (error) {
       toast.error("Error", {
@@ -482,6 +898,9 @@ const MegaMenuPage = () => {
           payload.thumbnailUrl = categoryState.thumbnailUrl
           payload.title = categoryState.title
           payload.subtitle = categoryState.subtitle
+          // Include thumbnail selection
+          payload.selectedThumbnailProductId = categoryState.selectedThumbnailProductId
+          payload.selectedThumbnailImageId = categoryState.selectedThumbnailImageId
         }
 
         // Third-level fields
@@ -490,6 +909,9 @@ const MegaMenuPage = () => {
           payload.thumbnailUrl = categoryState.thumbnailUrl
           payload.title = categoryState.title
           payload.subtitle = categoryState.subtitle
+          // Include thumbnail selection
+          payload.selectedThumbnailProductId = categoryState.selectedThumbnailProductId
+          payload.selectedThumbnailImageId = categoryState.selectedThumbnailImageId
         }
 
         // Top-level can have tagline, columns, featured
@@ -532,7 +954,9 @@ const MegaMenuPage = () => {
       setCategoryState(prev => ({
         ...prev,
         saving: false,
-        config: data.config
+        config: data.config,
+        resolvedThumbnail: data.resolvedThumbnail || null,
+        resolvedThumbnailProduct: data.resolvedThumbnailProduct || null
       }))
 
       toast.success("Success", {
@@ -545,6 +969,146 @@ const MegaMenuPage = () => {
       setCategoryState(prev => ({ ...prev, saving: false }))
     }
   }
+
+  // Thumbnail modal handlers
+  const openThumbnailModal = useCallback((category: CategoryWithConfig | null) => {
+    if (!category) return
+
+    setThumbnailModalState({
+      open: true,
+      categoryId: category.id,
+      categoryName: category.name,
+      searchInput: "",
+      products: [],
+      selectedProductId: categoryState.selectedThumbnailProductId,
+      selectedImageId: categoryState.selectedThumbnailImageId,
+      loading: false,
+      saving: false,
+      error: null
+    })
+
+    // Load initial products
+    loadThumbnailProducts(category.id, "")
+  }, [categoryState.selectedThumbnailProductId, categoryState.selectedThumbnailImageId])
+
+  const closeThumbnailModal = useCallback(() => {
+    setThumbnailModalState(prev => ({ ...prev, open: false }))
+  }, [])
+
+  const loadThumbnailProducts = async (categoryId: string, search: string) => {
+    setThumbnailModalState(prev => ({ ...prev, loading: true, error: null }))
+
+    try {
+      const params = new URLSearchParams({
+        limit: "100"
+      })
+      if (search) {
+        params.set("q", search)
+      }
+
+      const response = await fetch(`/admin/mega-menu/${categoryId}/products?${params}`, {
+        credentials: "include"
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to load products")
+      }
+
+      const data = await response.json()
+
+      setThumbnailModalState(prev => ({
+        ...prev,
+        loading: false,
+        products: data.products || []
+      }))
+    } catch (error) {
+      setThumbnailModalState(prev => ({
+        ...prev,
+        loading: false,
+        error: error instanceof Error ? error.message : "Failed to load products"
+      }))
+    }
+  }
+
+  const handleThumbnailSearch = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (thumbnailModalState.categoryId) {
+      loadThumbnailProducts(thumbnailModalState.categoryId, thumbnailModalState.searchInput)
+    }
+  }
+
+  const saveThumbnailSelection = async () => {
+    if (!categoryState.selectedCategoryId || !thumbnailModalState.selectedProductId || !thumbnailModalState.selectedImageId) {
+      toast.error("Error", {
+        description: "Please select both a product and an image"
+      })
+      return
+    }
+
+    setThumbnailModalState(prev => ({ ...prev, saving: true, error: null }))
+
+    try {
+      const response = await fetch(`/admin/mega-menu/${categoryState.selectedCategoryId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          selectedThumbnailProductId: thumbnailModalState.selectedProductId,
+          selectedThumbnailImageId: thumbnailModalState.selectedImageId
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to save thumbnail selection")
+      }
+
+      const data = await response.json()
+
+      // Update category state with the saved data
+      setCategoryState(prev => ({
+        ...prev,
+        selectedThumbnailProductId: data.config?.selectedThumbnailProductId || null,
+        selectedThumbnailImageId: data.config?.selectedThumbnailImageId || null,
+        resolvedThumbnail: data.resolvedThumbnail || null,
+        resolvedThumbnailProduct: data.resolvedThumbnailProduct || null,
+        config: data.config
+      }))
+
+      toast.success("Success", {
+        description: "Thumbnail selection saved successfully"
+      })
+
+      closeThumbnailModal()
+    } catch (error) {
+      setThumbnailModalState(prev => ({
+        ...prev,
+        saving: false,
+        error: error instanceof Error ? error.message : "Failed to save thumbnail selection"
+      }))
+      toast.error("Error", {
+        description: error instanceof Error ? error.message : "Failed to save thumbnail selection"
+      })
+    }
+  }
+
+  // Icon modal handlers
+  const openIconModal = useCallback(() => {
+    setIconModalState({
+      open: true,
+      searchInput: "",
+      selectedIcon: categoryState.icon || null
+    })
+  }, [categoryState.icon])
+
+  const closeIconModal = useCallback(() => {
+    setIconModalState(prev => ({ ...prev, open: false }))
+  }, [])
+
+  const selectIcon = useCallback((iconName: string) => {
+    setCategoryState(prev => ({ ...prev, icon: iconName }))
+  }, [])
 
   // Get parent and grandparent for conditional rendering
   const getParent = (categoryId: string): CategoryWithConfig | null => {
@@ -866,24 +1430,76 @@ const MegaMenuPage = () => {
                               {/* Third-level item display configuration when not displaying as column */}
                               <div className="flex flex-col gap-y-2">
                                 <Label>Icon</Label>
-                                <Input
-                                  value={categoryState.icon}
-                                  onChange={(e) =>
-                                    setCategoryState(prev => ({ ...prev, icon: e.target.value }))
-                                  }
-                                  placeholder="Icon name or identifier for this item"
-                                />
+                                {categoryState.icon ? (
+                                  <div className="flex items-center gap-2 p-2 border rounded-md border-ui-border-base bg-ui-bg-subtle">
+                                    <DynamicIcon name={categoryState.icon} size={20} />
+                                    <Text size="small" className="flex-1">{categoryState.icon}</Text>
+                                  </div>
+                                ) : (
+                                  <Text size="small" className="text-ui-fg-muted p-2">
+                                    No icon selected
+                                  </Text>
+                                )}
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="secondary"
+                                    size="small"
+                                    onClick={openIconModal}
+                                  >
+                                    {categoryState.icon ? "Change Icon" : "Select Icon"}
+                                  </Button>
+                                  {categoryState.icon && (
+                                    <Button
+                                      variant="secondary"
+                                      size="small"
+                                      onClick={() => setCategoryState(prev => ({ ...prev, icon: "" }))}
+                                    >
+                                      Clear
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
 
                               <div className="flex flex-col gap-y-2">
-                                <Label>Thumbnail URL</Label>
-                                <Input
-                                  value={categoryState.thumbnailUrl}
-                                  onChange={(e) =>
-                                    setCategoryState(prev => ({ ...prev, thumbnailUrl: e.target.value }))
-                                  }
-                                  placeholder="https://..."
-                                />
+                                <Label>Thumbnail</Label>
+                                {categoryState.resolvedThumbnail?.url ? (
+                                  <div className="space-y-2">
+                                    <div className="rounded-md border border-ui-border-base bg-ui-bg-subtle p-2">
+                                      <img
+                                        src={categoryState.resolvedThumbnail.url}
+                                        alt={categoryState.resolvedThumbnail.alt_text || "Thumbnail"}
+                                        className="h-32 w-full object-cover rounded"
+                                      />
+                                    </div>
+                                    <Text size="small" className="text-ui-fg-muted">
+                                      {categoryState.resolvedThumbnailProduct?.title}
+                                    </Text>
+                                  </div>
+                                ) : categoryState.thumbnailUrl ? (
+                                  <div className="space-y-2">
+                                    <div className="rounded-md border border-ui-border-base bg-ui-bg-subtle p-2">
+                                      <img
+                                        src={categoryState.thumbnailUrl}
+                                        alt="Thumbnail"
+                                        className="h-32 w-full object-cover rounded"
+                                      />
+                                    </div>
+                                    <Text size="small" className="text-ui-fg-muted">
+                                      Custom URL: {categoryState.thumbnailUrl}
+                                    </Text>
+                                  </div>
+                                ) : (
+                                  <Text size="small" className="text-ui-fg-muted">
+                                    No thumbnail selected
+                                  </Text>
+                                )}
+                                <Button
+                                  variant="secondary"
+                                  size="small"
+                                  onClick={() => openThumbnailModal(categoryState.selectedCategory)}
+                                >
+                                  {categoryState.resolvedThumbnail ? "Change Image" : "Select Product Image"}
+                                </Button>
                               </div>
 
                               <div className="flex flex-col gap-y-2">
@@ -930,24 +1546,76 @@ const MegaMenuPage = () => {
                         <>
                           <div className="flex flex-col gap-y-2">
                             <Label>Icon</Label>
-                            <Input
-                              value={categoryState.icon}
-                              onChange={(e) =>
-                                setCategoryState(prev => ({ ...prev, icon: e.target.value }))
-                              }
-                              placeholder="Icon name or identifier"
-                            />
+                            {categoryState.icon ? (
+                              <div className="flex items-center gap-2 p-2 border rounded-md border-ui-border-base bg-ui-bg-subtle">
+                                <DynamicIcon name={categoryState.icon} size={20} />
+                                <Text size="small" className="flex-1">{categoryState.icon}</Text>
+                              </div>
+                            ) : (
+                              <Text size="small" className="text-ui-fg-muted p-2">
+                                No icon selected
+                              </Text>
+                            )}
+                            <div className="flex gap-2">
+                              <Button
+                                variant="secondary"
+                                size="small"
+                                onClick={openIconModal}
+                              >
+                                {categoryState.icon ? "Change Icon" : "Select Icon"}
+                              </Button>
+                              {categoryState.icon && (
+                                <Button
+                                  variant="secondary"
+                                  size="small"
+                                  onClick={() => setCategoryState(prev => ({ ...prev, icon: "" }))}
+                                >
+                                  Clear
+                                </Button>
+                              )}
+                            </div>
                           </div>
 
                           <div className="flex flex-col gap-y-2">
-                            <Label>Thumbnail URL</Label>
-                            <Input
-                              value={categoryState.thumbnailUrl}
-                              onChange={(e) =>
-                                setCategoryState(prev => ({ ...prev, thumbnailUrl: e.target.value }))
-                              }
-                              placeholder="https://..."
-                            />
+                            <Label>Thumbnail</Label>
+                            {categoryState.resolvedThumbnail?.url ? (
+                              <div className="space-y-2">
+                                <div className="rounded-md border border-ui-border-base bg-ui-bg-subtle p-2">
+                                  <img
+                                    src={categoryState.resolvedThumbnail.url}
+                                    alt={categoryState.resolvedThumbnail.alt_text || "Thumbnail"}
+                                    className="h-32 w-full object-cover rounded"
+                                  />
+                                </div>
+                                <Text size="small" className="text-ui-fg-muted">
+                                  {categoryState.resolvedThumbnailProduct?.title}
+                                </Text>
+                              </div>
+                            ) : categoryState.thumbnailUrl ? (
+                              <div className="space-y-2">
+                                <div className="rounded-md border border-ui-border-base bg-ui-bg-subtle p-2">
+                                  <img
+                                    src={categoryState.thumbnailUrl}
+                                    alt="Thumbnail"
+                                    className="h-32 w-full object-cover rounded"
+                                  />
+                                </div>
+                                <Text size="small" className="text-ui-fg-muted">
+                                  Custom URL: {categoryState.thumbnailUrl}
+                                </Text>
+                              </div>
+                            ) : (
+                              <Text size="small" className="text-ui-fg-muted">
+                                No thumbnail selected
+                              </Text>
+                            )}
+                            <Button
+                              variant="secondary"
+                              size="small"
+                              onClick={() => openThumbnailModal(categoryState.selectedCategory)}
+                            >
+                              {categoryState.resolvedThumbnail ? "Change Image" : "Select Product Image"}
+                            </Button>
                           </div>
 
                           <div className="flex flex-col gap-y-2">
@@ -997,6 +1665,23 @@ const MegaMenuPage = () => {
           </div>
         </div>
       </Container>
+
+      {/* Product Image Modal */}
+      <ProductImageModal
+        modalState={thumbnailModalState}
+        onOpenChange={closeThumbnailModal}
+        setModalState={setThumbnailModalState}
+        onSearch={handleThumbnailSearch}
+        onSave={saveThumbnailSelection}
+      />
+
+      {/* Icon Selector Modal */}
+      <IconSelectorModal
+        modalState={iconModalState}
+        onOpenChange={closeIconModal}
+        setModalState={setIconModalState}
+        onSelect={selectIcon}
+      />
     </div>
   )
 }

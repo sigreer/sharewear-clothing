@@ -8,12 +8,87 @@ export type MegaMenuColumnLayout = "image" | "image-with-text" | "subcategory-ic
 export type MegaMenuColumnImageSource = "upload" | "product"
 export type MegaMenuColumnBadge = "new" | "offers" | "free-shipping" | "featured"
 
+/**
+ * Common LucideReact icon names for mega-menu usage.
+ * These icons are commonly used in ecommerce navigation menus.
+ *
+ * @see https://lucide.dev/icons for complete list of available icons
+ *
+ * Note: Any valid LucideReact icon name string is accepted - this type union
+ * provides autocomplete support for commonly used icons while remaining extensible.
+ */
+export type LucideIconName =
+  // Shopping & Commerce
+  | "ShoppingBag" | "ShoppingCart" | "Store" | "CreditCard" | "Receipt"
+  | "Tag" | "Ticket" | "Package" | "PackageCheck" | "PackageOpen"
+  // Fashion & Apparel
+  | "Shirt" | "Watch" | "Glasses" | "Crown" | "Gem"
+  | "Sparkles" | "Palette" | "Brush"
+  // Accessories & Items
+  | "Gift" | "Heart" | "Star" | "Award" | "BadgeCheck"
+  | "Headphones" | "Camera" | "Music" | "Monitor" | "Laptop"
+  // Service & Benefits
+  | "Truck" | "Shield" | "ShieldCheck" | "Clock" | "Zap"
+  | "ThumbsUp" | "Percent" | "DollarSign"
+  // Navigation & UI
+  | "Home" | "TrendingUp" | "Flame" | "Coffee"
+  | "ChevronRight" | "ArrowRight" | "ExternalLink"
+  // Categories
+  | "Users" | "User" | "Baby" | "PawPrint" | "Dumbbell"
+  | "Briefcase" | "Backpack" | "Luggage"
+  // Seasonal & Special
+  | "Snowflake" | "Sun" | "CloudRain" | "Leaf" | "Flower"
+  | "PartyPopper" | "Sparkle" | "Stars"
+  // Allow any string for extensibility
+  | (string & {})
+
+/**
+ * Type guard to check if a string is a recognized LucideReact icon name.
+ * Provides runtime validation while maintaining flexibility for new icons.
+ *
+ * @param icon - The icon name to validate
+ * @returns true if the icon name appears to be valid
+ */
+export function isValidLucideIconName(icon: string | null | undefined): icon is LucideIconName {
+  if (!icon || typeof icon !== 'string') {
+    return false
+  }
+
+  const trimmed = icon.trim()
+
+  // Empty strings are invalid
+  if (trimmed.length === 0) {
+    return false
+  }
+
+  // LucideReact icons follow PascalCase naming convention
+  // Check for basic validity: starts with uppercase, contains only alphanumeric
+  const pascalCasePattern = /^[A-Z][a-zA-Z0-9]*$/
+  return pascalCasePattern.test(trimmed)
+}
+
+/**
+ * Commonly used LucideReact icons for mega-menu categories.
+ * Useful reference list for frontend implementations.
+ */
+export const COMMON_MENU_ICONS: LucideIconName[] = [
+  'ShoppingBag', 'Heart', 'Star', 'Sparkles', 'Truck', 'Shield',
+  'Package', 'Shirt', 'Watch', 'Glasses', 'Home', 'TrendingUp',
+  'Award', 'Gift', 'Zap', 'Coffee', 'Music', 'Camera',
+  'Headphones', 'Monitor', 'Crown', 'Tag', 'Store', 'Gem'
+]
+
 export type MegaMenuLinkConfig = {
   label?: string | null
   href?: string | null
   description?: string | null
   badge?: string | null
-  icon?: string | null
+  /**
+   * LucideReact icon name (e.g., 'ShoppingBag', 'Heart', 'Star').
+   * @see https://lucide.dev/icons for available icons
+   * @see LucideIconName type for commonly used icons
+   */
+  icon?: LucideIconName | null
   thumbnailUrl?: string | null
   categoryId?: string | null
   metadata?: Record<string, unknown> | null
@@ -61,8 +136,16 @@ export type MegaMenuConfigInput = {
   columnBadge?: MegaMenuColumnBadge | null
 
   // Third-level category configuration
-  icon?: string | null
+  /**
+   * LucideReact icon name for third-level category display (e.g., 'ShoppingBag', 'Heart', 'Star').
+   * Used when displaying categories in icon-based layouts.
+   * @see https://lucide.dev/icons for available icons
+   * @see LucideIconName type for commonly used icons
+   */
+  icon?: LucideIconName | null
   thumbnailUrl?: string | null
+  selectedThumbnailProductId?: string | null
+  selectedThumbnailImageId?: string | null
   title?: string | null
   subtitle?: string | null
 
@@ -101,8 +184,14 @@ export type MegaMenuConfigDTO = {
   columnBadge: MegaMenuColumnBadge | null
 
   // Third-level category configuration
-  icon: string | null
+  /**
+   * LucideReact icon name for third-level category display.
+   * @see https://lucide.dev/icons for available icons
+   */
+  icon: LucideIconName | null
   thumbnailUrl: string | null
+  selectedThumbnailProductId: string | null
+  selectedThumbnailImageId: string | null
   title: string | null
   subtitle: string | null
 
@@ -123,7 +212,11 @@ export type MegaMenuLink = {
   href: string
   description?: string
   badge?: string
-  icon?: string
+  /**
+   * LucideReact icon name (e.g., 'ShoppingBag', 'Heart', 'Star').
+   * @see https://lucide.dev/icons for available icons
+   */
+  icon?: LucideIconName
   thumbnailUrl?: string
 }
 
@@ -169,7 +262,11 @@ export type MegaMenuNavigationItem = {
   columnImageUrl?: string | null
   columnBadge?: MegaMenuColumnBadge | null
   // Third-level category fields
-  icon?: string | null
+  /**
+   * LucideReact icon name for category display.
+   * @see https://lucide.dev/icons for available icons
+   */
+  icon?: LucideIconName | null
   thumbnailUrl?: string | null
   title?: string | null
   subtitle?: string | null
