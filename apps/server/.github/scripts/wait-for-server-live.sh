@@ -8,7 +8,7 @@ do
     --write-out %{http_code} \
     --silent\
     --output /dev/null\
-    http://localhost:9000/store/products)
+    http://sharewear.local:9000/store/products)
 
 echo $status_code
   if [[ "$status_code" -ne 000 ]] ; then

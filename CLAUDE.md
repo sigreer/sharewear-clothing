@@ -28,8 +28,11 @@ This is a **Medusa v2** ecommerce application with a monorepo structure containi
 
 **IMPORTANT**: Before starting development servers, check for existing instances running on the required ports:
 - Backend server runs on port 9000
-- Admin web GUI: http://localhost:9000/app (NOT /app/admin)
-- Storefront runs on port 8201: http://localhost:8201
+- Admin web GUI: **http://localhost:9000/app** (use localhost, NOT sharewear.local for dev)
+  - **Note**: Due to Vite dev server limitations, admin UI must be accessed via `localhost` in development
+  - API endpoints and file URLs can use `sharewear.local:9000`
+  - Production builds work with any hostname
+- Storefront runs on port 8201: http://localhost:8201 (or http://sharewear.local:8201)
 - Database: postgres:postgres@localhost:55432/shareweardb
 - Use `lsof -i :PORT` to check if ports are in use
 

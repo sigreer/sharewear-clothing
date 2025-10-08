@@ -19,7 +19,7 @@ AI agents must ALWAYS check for running servers before taking action:
 
 ```bash
 # Primary check - your preferred port
-curl -f http://localhost:8201 >/dev/null 2>&1
+curl -f http://sharewear.local:8201 >/dev/null 2>&1
 
 # If server is running, proceed with testing using the existing server.
 # If the server is not running, start a new server instance with
@@ -39,9 +39,9 @@ Before any AI agent begins work, they must complete this checklist:
 ### Server Status Check
 ```bash
 # 1. Check if development server is running
-if curl -f http://localhost:8201 >/dev/null 2>&1; then
+if curl -f http://sharewear.local:8201 >/dev/null 2>&1; then
   echo "✅ Dev server detected on port 8201"
-  SERVER_URL="http://localhost:8201"
+  SERVER_URL="http://sharewear.local:8201"
 else
   echo "❌ No dev server detected on port 8201"
   echo "Please start the server with: cd apps/storefront1 && bun run dev"
@@ -112,7 +112,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:8201',
+    baseURL: 'http://sharewear.local:8201',
     trace: 'on-first-retry',
   },
   projects: [
@@ -131,7 +131,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'bun run dev',
-    url: 'http://localhost:8201',
+    url: 'http://sharewear.local:8201',
     reuseExistingServer: true, // Key setting for your workflow
   },
 });
@@ -243,7 +243,7 @@ export async function takeComponentScreenshot(
 cd apps/storefront1 && bun run dev
 
 # Check if server is running
-curl -f http://localhost:8201 >/dev/null 2>&1 && echo "Server running" || echo "Server not running"
+curl -f http://sharewear.local:8201 >/dev/null 2>&1 && echo "Server running" || echo "Server not running"
 
 # Build for production testing
 cd apps/storefront1 && bun run build
@@ -327,10 +327,10 @@ netstat -tlnp | grep 8201
 If the server is running but not responding:
 ```bash
 # Check server health
-curl -I http://localhost:8201
+curl -I http://sharewear.local:8201
 
 # Check Next.js specific endpoints
-curl http://localhost:8201/_next/static/
+curl http://sharewear.local:8201/_next/static/
 ```
 
 ### Build Issues

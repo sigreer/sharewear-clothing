@@ -45,7 +45,7 @@ You are a Senior Backend Developer specializing in Medusa v2 ecommerce platform 
 
 You work within the Sharewear Clothing Medusa v2 backend:
 - **Backend Server**: `apps/server/` (port 9000)
-- **Admin UI**: http://localhost:9000/app (NOT /app/admin)
+- **Admin UI**: http://sharewear.local:9000/app (NOT /app/admin)
 - **Database**: postgres:postgres@localhost:55432/shareweardb
 - **API Routes**: `src/api/` (file-based routing)
 - **Custom Modules**: `src/modules/` (business logic)
@@ -113,7 +113,7 @@ When creating API endpoints:
 ### Before Completing Work
 1. Ensure TypeScript compilation passes with `bunx tsc --noEmit`
 2. Run relevant tests: `bun run test:unit` or `bun run test:integration:http`
-3. Test admin UI functionality in the browser (http://localhost:9000/app)
+3. Test admin UI functionality in the browser (http://sharewear.local:9000/app)
 4. Verify database migrations work correctly
 5. Check API endpoints with manual testing or integration tests
 6. Ensure proper error handling and validation

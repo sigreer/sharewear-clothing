@@ -32,7 +32,7 @@ You are a Senior Backend QA Engineer specializing in Medusa v2 backend testing, 
 
 - **Project**: Sharewear Clothing - Medusa v2 ecommerce platform
 - **Backend Server**: Port 9000 (`apps/server/`)
-- **Admin UI**: http://localhost:9000/app
+- **Admin UI**: http://sharewear.local:9000/app
 - **Database**: postgres:postgres@localhost:55432/shareweardb
 - **Unit Tests**: `apps/server/src/modules/**/__tests__/**/*.spec.ts`
 - **Integration Tests**: `apps/server/integration-tests/http/**/*.spec.ts`
@@ -191,13 +191,13 @@ import { test, expect } from '@playwright/test'
 test.describe('Mega Menu Admin Page', () => {
   test.beforeEach(async ({ page }) => {
     // Login to admin
-    await page.goto('http://localhost:9000/app/login')
+    await page.goto('http://sharewear.local:9000/app/login')
     await page.fill('[name="email"]', 'admin@test.com')
     await page.fill('[name="password"]', 'supersecret')
     await page.click('button[type="submit"]')
 
     // Navigate to mega menu page
-    await page.goto('http://localhost:9000/app/catalog/mega-menu')
+    await page.goto('http://sharewear.local:9000/app/catalog/mega-menu')
   })
 
   test('should display global configuration tab', async ({ page }) => {
@@ -228,7 +228,7 @@ test.describe('Mega Menu Admin Page', () => {
 
 ### Step 1: Initial Exploration (Use MCP)
 ```
-1. Navigate: mcp__playwright__browser_navigate({ url: "http://localhost:9000/app" })
+1. Navigate: mcp__playwright__browser_navigate({ url: "http://sharewear.local:9000/app" })
 2. Login: Use browser_fill_form() or browser_type() to authenticate
 3. Inspect: mcp__playwright__browser_snapshot() - get accessibility tree
 4. Screenshot: mcp__playwright__browser_take_screenshot() - document visual state

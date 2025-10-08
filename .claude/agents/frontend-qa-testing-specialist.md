@@ -111,7 +111,7 @@ You are a Senior QA Engineer specializing in frontend testing automation, with e
 
 ### Step 1: Initial Exploration (Use MCP)
 ```
-1. Navigate: mcp__playwright__browser_navigate({ url: "http://localhost:8201/path" })
+1. Navigate: mcp__playwright__browser_navigate({ url: "http://sharewear.local:8201/path" })
 2. Inspect: mcp__playwright__browser_snapshot() - get accessibility tree
 3. Screenshot: mcp__playwright__browser_take_screenshot() - document visual state
 4. Interact: mcp__playwright__browser_click(), browser_type(), etc.

@@ -401,7 +401,7 @@ console.log(`Visual test report generated: ${reportPath}`);
 ### 1. Server Not Detected
 ```bash
 # Check if server is actually running
-curl -f http://localhost:8201 >/dev/null 2>&1 && echo "Running" || echo "Not running"
+curl -f http://sharewear.local:8201 >/dev/null 2>&1 && echo "Running" || echo "Not running"
 
 # Start server if needed
 cd apps/storefront1 && bun run dev
@@ -469,7 +469,7 @@ Before declaring component work complete, ensure:
 cd apps/storefront1
 
 # Check server status
-curl -f http://localhost:8201
+curl -f http://sharewear.local:8201
 
 # Run all tests
 bunx playwright test
