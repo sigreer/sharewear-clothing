@@ -64,11 +64,11 @@ const MegaMenuPanel: React.FC<MegaMenuPanelProps> = ({ content, onNavigate }) =>
   const renderDefaultLayout = () => (
     <div className="flex flex-col gap-6">
       <div className="flex-1">
-        <div className="grid gap-6 auto-cols-max" style={{ gridTemplateColumns: `repeat(${content.columns.length}, minmax(240px, 280px))` }}>
+        <div className="grid gap-6 auto-cols-max" style={{ gridTemplateColumns: `repeat(${content.columns.length}, minmax(155px, 180px))` }}>
           {content.columns.map((column, index) => (
             <motion.div
               key={column.heading}
-              className="space-y-4 min-w-[240px]"
+              className="space-y-4 min-w-[155px]"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{
@@ -84,8 +84,8 @@ const MegaMenuPanel: React.FC<MegaMenuPanelProps> = ({ content, onNavigate }) =>
                 </div>
               )}
 
-              {/* Render image based on columnLayout */}
-              {column.imageUrl && (column.columnLayout === 'image' || column.columnLayout === 'image-with-text' || !column.columnLayout) && (
+              {/* Render image if present */}
+              {column.imageUrl && (
                 <div className="aspect-[4/3] w-full overflow-hidden rounded-lg">
                   <img
                     src={column.imageUrl}
@@ -190,11 +190,11 @@ const MegaMenuPanel: React.FC<MegaMenuPanelProps> = ({ content, onNavigate }) =>
 
   const renderThumbnailGridLayout = () => (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-6" style={{ gridTemplateColumns: `repeat(${Math.min(content.columns.length, 3)}, minmax(240px, 280px))` }}>
+      <div className="grid gap-6" style={{ gridTemplateColumns: `repeat(${Math.min(content.columns.length, 3)}, minmax(155px, 180px))` }}>
         {content.columns.map((column, index) => (
           <motion.div
             key={column.heading || `column-${index}`}
-            className="space-y-4 min-w-[240px]"
+            className="space-y-4 min-w-[155px]"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{

@@ -67,9 +67,11 @@ const buildMegaMenuContent = (item: any): MegaMenuContent | null => {
     } else {
       // Second-level category as list header, showing third-level items
       const column: MegaMenuColumn = {
-        heading: secondLevel.title || secondLevel.label,
-        description: secondLevel.subtitle || secondLevel.subLabel || undefined,
+        heading: secondLevel.columnTitle || secondLevel.title || secondLevel.label,
+        description: secondLevel.columnDescription || secondLevel.subtitle || secondLevel.subLabel || undefined,
+        imageUrl: secondLevel.columnImageUrl || undefined,
         items: [],
+        badge: secondLevel.columnBadge as any,
         columnLayout: secondLevel.columnLayout || undefined,
         categoryId: secondLevel.id
       }
