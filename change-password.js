@@ -45,7 +45,7 @@ async function changePassword(email, newPassword) {
     if (result.rowCount > 0) {
       console.log(`✅ Password updated successfully for ${email}`);
       console.log(`New password: ${newPassword}`);
-      console.log(`\nYou can now login to the admin panel at http://localhost:9000/app`);
+      console.log(`\nYou can now login to the admin panel at http://sharewear.local:9000/app`);
     } else {
       console.log(`❌ User with email ${email} not found or not using emailpass provider`);
       console.log(`\nTip: Make sure the user exists and uses email/password authentication`);

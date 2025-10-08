@@ -123,7 +123,7 @@ if (!global.__MEDUSA_CONFIG_LOGGED__) {
   })
 
   console.info('[medusa-config] Local file provider static URL:',
-    resolvedLocalFileBackendUrl || 'default (http://localhost:9000/static)')
+    resolvedLocalFileBackendUrl || 'default (http://sharewear.local:9000/static)')
 }
 
 const localFileProviderOptions = {
@@ -141,7 +141,26 @@ module.exports = defineConfig({
     vite: () => ({
       server: {
         host: '0.0.0.0',
-        allowedHosts: ['localhost', 'sharewear.local', '.sharewear.local'],
+        // Allow access from both localhost and sharewear.local
+        strictPort: false,
+        // Configure filesystem access to allow serving modules from node_modules
+        // This ensures @fs/ paths work correctly regardless of hostname
+        fs: {
+          // Allow serving files from parent directories (needed for node_modules)
+          allow: [
+            // Allow access to workspace root and parent directories
+            '..',
+            '../..',
+            // Explicitly allow access to project root
+            process.cwd(),
+          ],
+          // Don't restrict filesystem access too strictly
+          strict: false,
+        },
+        // Enable CORS to allow requests from multiple hostnames
+        cors: true,
+        // Allow all hosts - Vite 5.4+ requires this for custom hostnames
+        allowedHosts: true,
       },
     }),
   },
@@ -206,6 +225,10 @@ module.exports = defineConfig({
     },
     {
       resolve: "./src/modules/category-selector-by-product",
+      dependencies: [Modules.PRODUCT]
+    },
+    {
+      resolve: "./src/modules/render-engine",
       dependencies: [Modules.PRODUCT]
     },
     {

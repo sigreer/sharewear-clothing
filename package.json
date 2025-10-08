@@ -32,7 +32,6 @@
     "reset": "bun run clean && bun install"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2",
     "shadcn": "^3.3.1"
   },
   "keywords": [
@@ -46,6 +45,7 @@
   ],
   "dependencies": {
     "ajv": "^8.17.1",
+    "concurrently": "^9.2.1",
     "pg": "^8.16.3",
     "scrypt-js": "^3.0.1",
     "scryptsy": "^2.1.0"

@@ -24,7 +24,7 @@ const backendHostname = getBackendHostname()
 const nextConfig = {
   reactStrictMode: true,
   allowedDevOrigins: [
-    "100.108.185.11"
+    "sharewear.local"
   ],
   logging: {
     fetches: {
