@@ -120,7 +120,7 @@ export function SearchDialog({ open, onOpenChange, merged = false }: SearchDialo
 
   return (
     <>
-      <Tooltip delayDuration={300}>
+      <Tooltip delayDuration={400}>
         <TooltipTrigger asChild>
           <Button
             variant="ghost"

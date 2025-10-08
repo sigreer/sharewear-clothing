@@ -7,7 +7,6 @@ import { ShoppingBasket } from "lucide-react"
 import { Button as ShadcnButton } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import DeleteButton from "@modules/common/components/delete-button"
 import LineItemOptions from "@modules/common/components/line-item-options"
 import LineItemPrice from "@modules/common/components/line-item-price"
@@ -91,48 +90,41 @@ const CartDropdown = ({
       onMouseLeave={close}
     >
       <Popover open={cartDropdownOpen} onOpenChange={setCartDropdownOpen}>
-        <Tooltip delayDuration={300}>
-          <TooltipTrigger asChild>
-            <PopoverTrigger asChild>
-              <div className="relative flex h-full items-center">
-                <ShadcnButton
-                  asChild
-                  variant="ghost"
-                  className={cn(
-                    "relative rounded-lg transition-colors",
+        <PopoverTrigger asChild>
+          <div className="relative flex h-full items-center">
+            <ShadcnButton
+              asChild
+              variant="ghost"
+              className={cn(
+                "relative rounded-lg transition-colors",
+                mobile
+                  ? "h-auto w-auto p-0 bg-transparent hover:bg-transparent text-primary-foreground hover:text-primary-foreground/80 flex items-center justify-center"
+                  : "h-8 w-8 p-0",
+                !mobile && merged
+                  ? "text-white hover:bg-white hover:text-primary"
+                  : !mobile && !merged
+                  ? "text-foreground-secondary hover:bg-primary hover:text-primary-foreground"
+                  : ""
+              )}
+              aria-label={`Cart with ${totalItems} items`}
+              data-testid="nav-cart-link"
+            >
+              <LocalizedClientLink href="/cart" className={mobile ? "flex items-center justify-center" : ""}>
+                <ShoppingBasket size={mobile ? 28 : 22} strokeWidth={1.8} />
+                {totalItems > 0 && (
+                  <span className={cn(
+                    "absolute flex items-center justify-center rounded-full bg-red-500 font-bold text-white",
                     mobile
-                      ? "h-auto w-auto p-0 bg-transparent hover:bg-transparent text-primary-foreground hover:text-primary-foreground/80 flex items-center justify-center"
-                      : "h-8 w-8 p-0",
-                    !mobile && merged
-                      ? "text-white hover:bg-white hover:text-primary"
-                      : !mobile && !merged
-                      ? "text-foreground-secondary hover:bg-primary hover:text-primary-foreground"
-                      : ""
-                  )}
-                  aria-label={`Cart with ${totalItems} items`}
-                  data-testid="nav-cart-link"
-                >
-                  <LocalizedClientLink href="/cart" className={mobile ? "flex items-center justify-center" : ""}>
-                    <ShoppingBasket size={mobile ? 28 : 22} strokeWidth={1.8} />
-                    {totalItems > 0 && (
-                      <span className={cn(
-                        "absolute flex items-center justify-center rounded-full bg-red-500 font-bold text-white",
-                        mobile
-                          ? "-top-1 -right-1 h-5 w-5 text-xs"
-                          : "-top-0.5 -right-0.5 h-[18px] w-[18px] text-xs"
-                      )}>
-                        {totalItems > 99 ? '99+' : totalItems}
-                      </span>
-                    )}
-                  </LocalizedClientLink>
-                </ShadcnButton>
-              </div>
-            </PopoverTrigger>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            Cart
-          </TooltipContent>
-        </Tooltip>
+                      ? "-top-1 -right-1 h-5 w-5 text-xs"
+                      : "-top-0.5 -right-0.5 h-[18px] w-[18px] text-xs"
+                  )}>
+                    {totalItems > 99 ? '99+' : totalItems}
+                  </span>
+                )}
+              </LocalizedClientLink>
+            </ShadcnButton>
+          </div>
+        </PopoverTrigger>
         <PopoverContent
           className="hidden sm:block w-[420px] p-0 bg-background text-text shadow-xl z-[1100]"
           align="end"

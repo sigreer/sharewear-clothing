@@ -77,7 +77,7 @@ export const searchProducts = async ({
       ...filters,
     })
 
-    const backendUrl = process.env.MEDUSA_BACKEND_URL || "http://localhost:9000"
+    const backendUrl = process.env.MEDUSA_BACKEND_URL || "http://sharewear.local:9000"
     const response = await fetch(
       `${backendUrl}/store/meilisearch/products?${searchParams}`,
       {
@@ -232,7 +232,7 @@ export const searchCategories = async ({
       offset: offset.toString(),
     })
 
-    const backendUrl = process.env.MEDUSA_BACKEND_URL || "http://localhost:9000"
+    const backendUrl = process.env.MEDUSA_BACKEND_URL || "http://sharewear.local:9000"
     const response = await fetch(
       `${backendUrl}/store/meilisearch/categories?${searchParams}`,
       {

@@ -38,7 +38,7 @@ const ColorModeToggle = ({
   if (!mounted || !theme) {
     return (
       <TooltipProvider>
-        <Tooltip>
+        <Tooltip delayDuration={400}>
           <TooltipTrigger asChild>
             <Button
               aria-label="Toggle theme"
@@ -67,7 +67,7 @@ const ColorModeToggle = ({
 
   return (
     <TooltipProvider>
-      <Tooltip>
+      <Tooltip delayDuration={400}>
         <TooltipTrigger asChild>
           <Button
             aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}

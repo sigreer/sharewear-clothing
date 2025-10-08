@@ -58,32 +58,43 @@ const MegaMenuContentTransition = ({ openMegaMenuItem, navigation, onNavigate, m
     }
 
     const calculatePosition = () => {
-      const containerRect = containerRef.getBoundingClientRect()
+      // Get the mega menu's content-container (parent of the positioned div)
+      const megaMenuContentContainer = panelRef.current?.closest('.content-container')
+      if (!megaMenuContentContainer) return
+
+      const megaMenuContainerRect = megaMenuContentContainer.getBoundingClientRect()
       const menuItemRect = menuItemRef.getBoundingClientRect()
       const panelWidth = panelRef.current?.offsetWidth || 0
 
-      // Position relative to container
-      const menuItemLeft = menuItemRect.left - containerRect.left
-      const menuItemCenter = menuItemLeft + (menuItemRect.width / 2)
+      // Count columns in the mega menu
+      const columnCount = currentMegaMenuItem?.megaMenu?.columns?.length || 0
 
-      // Calculate desired left position (centered under menu item)
-      let left = menuItemCenter - (panelWidth / 2)
+      let left: number
 
-      // Ensure menu doesn't overflow left
-      const minLeft = 24 // 24px padding from left edge
-      if (left < minLeft) {
-        left = minLeft
-      }
+      if (columnCount <= 2) {
+        // 1-2 columns: Center under menu item
+        const menuItemLeft = menuItemRect.left - megaMenuContainerRect.left
+        const menuItemCenter = menuItemLeft + (menuItemRect.width / 2)
+        left = menuItemCenter - (panelWidth / 2)
 
-      // Ensure menu doesn't overflow right
-      const maxLeft = containerRect.width - panelWidth - 24 // 24px padding from right edge
-      if (left > maxLeft) {
-        left = Math.max(minLeft, maxLeft)
+        // Prevent overflow on left edge
+        if (left < 0) {
+          left = 0
+        }
+
+        // Prevent overflow on right edge
+        const maxLeft = megaMenuContainerRect.width - panelWidth
+        if (left > maxLeft) {
+          left = Math.max(0, maxLeft)
+        }
+      } else {
+        // 3+ columns: Center under navbar
+        left = (megaMenuContainerRect.width - panelWidth) / 2
       }
 
       setMenuPosition({
         left,
-        maxWidth: containerRect.width - 48 // 24px padding on each side
+        maxWidth: megaMenuContainerRect.width
       })
     }
 
@@ -93,7 +104,7 @@ const MegaMenuContentTransition = ({ openMegaMenuItem, navigation, onNavigate, m
     // Recalculate on resize
     window.addEventListener('resize', calculatePosition)
     return () => window.removeEventListener('resize', calculatePosition)
-  }, [menuItemRef, containerRef, openMegaMenuItem])
+  }, [menuItemRef, containerRef, openMegaMenuItem, currentMegaMenuItem])
 
   const handlePanelRef = React.useCallback((node: HTMLDivElement | null) => {
     panelRef.current = node
@@ -154,7 +165,7 @@ const MegaMenuContentTransition = ({ openMegaMenuItem, navigation, onNavigate, m
             key={openMegaMenuItem}
             ref={handlePanelRef}
             initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
+            animate={{ opacity: menuPosition ? 1 : 0, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.18, ease: [0.22, 0.61, 0.36, 1] }}
             className="absolute left-0 top-0"
@@ -269,14 +280,25 @@ const DesktopNav = ({ items, merged = false, onMegaMenuOpen, onMegaMenuClose, op
     }
   }
 
-  const handleClose = () => {
-    // Add delay before closing
-    closeTimeoutRef.current = setTimeout(() => {
+  const handleClose = (instant = false) => {
+    if (instant) {
+      // Instant close when switching to a non-megamenu item
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current)
+        closeTimeoutRef.current = null
+      }
       if (onMegaMenuClose) {
         onMegaMenuClose()
       }
-      closeTimeoutRef.current = null
-    }, 200) // 200ms delay for smoother transitions
+    } else {
+      // Add delay before closing when hovering away entirely
+      closeTimeoutRef.current = setTimeout(() => {
+        if (onMegaMenuClose) {
+          onMegaMenuClose()
+        }
+        closeTimeoutRef.current = null
+      }, 200) // 200ms delay for smoother transitions
+    }
   }
 
   return (
@@ -295,8 +317,8 @@ const DesktopNav = ({ items, merged = false, onMegaMenuOpen, onMegaMenuClose, op
               }
             }}
             className="relative"
-            onMouseEnter={() => hasMegaMenu && handleOpen(navItem.label)}
-            onFocusCapture={() => hasMegaMenu && handleOpen(navItem.label)}
+            onMouseEnter={() => hasMegaMenu ? handleOpen(navItem.label) : handleClose(true)}
+            onFocusCapture={() => hasMegaMenu ? handleOpen(navItem.label) : handleClose(true)}
             onBlurCapture={(event) => {
               const nextTarget = event.relatedTarget as Node | null
               if (!nextTarget || !event.currentTarget.contains(nextTarget)) {
