@@ -57,14 +57,13 @@
         <div class="viewer-wrapper">
             <h2>Interactive Yellow T-Shirt Model</h2>
             <model-viewer
-                src="yellow-shirt-compressed.glb"
+                src="test-centered.glb"
                 alt="Yellow t-shirt with custom design"
                 camera-controls
                 touch-action="pan-y"
                 auto-rotate
                 auto-rotate-delay="3000"
                 rotation-per-second="30deg"
-                environment-image="neutral"
                 shadow-intensity="1"
                 exposure="1"
                 camera-orbit="0deg 75deg 2.5m"
@@ -72,6 +71,8 @@
                 max-camera-orbit="auto auto 10m"
                 field-of-view="30deg"
                 loading="eager"
+                interaction-prompt="auto"
+                camera-target="0m 0m 0m"
             >
                 <div slot="progress-bar" style="display: none;"></div>
             </model-viewer>
