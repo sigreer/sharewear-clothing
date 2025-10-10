@@ -143,3 +143,22 @@ coverage/
 
 # Custom utilities (keep in repo for team)
 # change-password.js - Keep this utility for password resets
+
+# Blender and 3D rendering outputs
+assets/test*/
+assets/animated-t-shirt/
+assets/2d-design/
+assets/*.blend1
+assets/*.blend2
+*.blend1
+*.blend2
+output/*.png
+output/*.jpg
+output/*.mp4
+output/*.glb
+output/*.gltf
+
+# Temporary design files
+assets/drawing.svg
+assets/manual-save-*.png
+assets/this-is-*.png
