@@ -210,61 +210,89 @@ def get_position_config(position: str, size: str) -> dict:
 
 
 def get_preset_config(preset_name: str) -> dict:
-    """Return positioning parameters for preset."""
+    """Return positioning parameters for preset.
+
+    All presets scale the design to fit within the defined boundaries while
+    maintaining aspect ratio. The design is scaled down (never up) to fit
+    100% within the preset area without distortion.
+    """
     presets = {
-        'chest-large': {
-            'panel': 'front_panel',
-            'scale_factor': 0.65,
-            'margin': 0.10,
-            'vertical_offset': 0.25
-        },
-        'chest-medium': {
-            'panel': 'front_panel',
-            'scale_factor': 0.55,
-            'margin': 0.10,
-            'vertical_offset': 0.25
-        },
+        # FRONT PANEL PRESETS (chest area)
+        # chest-small: Small zone at very top of chest (yellow in reference)
         'chest-small': {
             'panel': 'front_panel',
-            'scale_factor': 0.45,
-            'margin': 0.10,
-            'vertical_offset': 0.25
+            'scale_factor': 0.45,      # 45% of panel width
+            'margin': 0.15,             # 15% margin from edges
+            'vertical_offset': 0.15,    # 15% down from top (high chest)
+            'max_height_factor': 0.25   # Max 25% of panel height
         },
-        'dead-center-large': {
+        # chest-medium: Medium zone covering chest area (red in reference)
+        'chest-medium': {
             'panel': 'front_panel',
-            'scale_factor': 0.65,
-            'margin': 0.10,
-            'vertical_offset': 0.45
+            'scale_factor': 0.60,       # 60% of panel width
+            'margin': 0.12,             # 12% margin from edges
+            'vertical_offset': 0.22,    # 22% down from top
+            'max_height_factor': 0.35   # Max 35% of panel height
         },
-        'dead-center-medium': {
+        # chest-large: Large zone covering most of front (dark red in reference)
+        'chest-large': {
             'panel': 'front_panel',
-            'scale_factor': 0.55,
-            'margin': 0.10,
-            'vertical_offset': 0.45
+            'scale_factor': 0.75,       # 75% of panel width
+            'margin': 0.08,             # 8% margin from edges
+            'vertical_offset': 0.50,    # 50% down (centered vertically)
+            'max_height_factor': 0.80   # Max 80% of panel height
         },
-        'dead-center-small': {
-            'panel': 'front_panel',
-            'scale_factor': 0.45,
-            'margin': 0.10,
-            'vertical_offset': 0.45
-        },
-        'back-large': {
-            'panel': 'back_panel',
-            'scale_factor': 0.65,
-            'margin': 0.10,
-            'vertical_offset': 0.45
-        },
-        'back-medium': {
-            'panel': 'back_panel',
-            'scale_factor': 0.55,
-            'margin': 0.10,
-            'vertical_offset': 0.45
-        },
+
+        # BACK PANEL PRESETS (upper back area)
+        # back-small: Small zone at top of back (light blue in reference)
         'back-small': {
             'panel': 'back_panel',
-            'scale_factor': 0.45,
-            'margin': 0.10,
-            'vertical_offset': 0.45
+            'scale_factor': 0.40,       # 40% of panel width
+            'margin': 0.15,             # 15% margin from edges
+            'vertical_offset': 0.12,    # 12% down from top (high back)
+            'max_height_factor': 0.20   # Max 20% of panel height
+        },
+        # back-medium: Medium zone on upper back (blue in reference)
+        'back-medium': {
+            'panel': 'back_panel',
+            'scale_factor': 0.60,       # 60% of panel width
+            'margin': 0.12,             # 12% margin from edges
+            'vertical_offset': 0.30,    # 30% down from top
+            'max_height_factor': 0.35   # Max 35% of panel height
+        },
+        # back-large: Large zone covering upper/mid back (dark blue in reference)
+        'back-large': {
+            'panel': 'back_panel',
+            'scale_factor': 0.70,       # 70% of panel width
+            'margin': 0.10,             # 10% margin from edges
+            'vertical_offset': 0.25,    # 25% down from top
+            'max_height_factor': 0.50   # Max 50% of panel height
+        },
+
+        # BACK PANEL PRESETS (lower back area - new)
+        # back-bottom-small: Small zone at lower back (bright green in reference)
+        'back-bottom-small': {
+            'panel': 'back_panel',
+            'scale_factor': 0.50,       # 50% of panel width
+            'margin': 0.10,             # 10% margin from edges
+            'vertical_offset': 0.80,    # 80% down (lower back)
+            'max_height_factor': 0.25   # Max 25% of panel height
+        },
+        # back-bottom-medium: Medium zone at lower back (medium green in reference)
+        'back-bottom-medium': {
+            'panel': 'back_panel',
+            'scale_factor': 0.60,       # 60% of panel width
+            'margin': 0.10,             # 10% margin from edges
+            'vertical_offset': 0.75,    # 75% down
+            'max_height_factor': 0.35   # Max 35% of panel height
+        },
+        # back-bottom-large: Large zone at lower back (dark green/teal in reference)
+        'back-bottom-large': {
+            'panel': 'back_panel',
+            'scale_factor': 0.65,       # 65% of panel width
+            'margin': 0.08,             # 8% margin from edges
+            'vertical_offset': 0.70,    # 70% down
+            'max_height_factor': 0.45   # Max 45% of panel height
         }
     }
 
@@ -310,9 +338,14 @@ def composite_design(template_img: Image.Image, design_img: Image.Image,
     target_width = printable_width * position_preset['scale_factor']
     target_height = target_width * design_aspect
 
-    # Ensure design doesn't exceed printable height
-    if target_height > printable_height * 0.8:
-        target_height = printable_height * 0.8
+    # Ensure design doesn't exceed maximum height constraint
+    # Use max_height_factor if specified, otherwise default to 0.8
+    max_height_factor = position_preset.get('max_height_factor', 0.8)
+    max_allowed_height = printable_height * max_height_factor
+
+    if target_height > max_allowed_height:
+        # Scale down to fit within height constraint
+        target_height = max_allowed_height
         target_width = target_height / design_aspect
 
     # Scale design
@@ -365,9 +398,12 @@ Examples:
   %(prog)s --template shirt.png --design logo.png --position back --output result.png
 
 Available presets:
-  back-large, back-medium, back-small
-  chest-large, chest-medium, chest-small
-  dead-center-large, dead-center-medium, dead-center-small
+  Front panel (chest area):
+    chest-small, chest-medium, chest-large
+  Back panel (upper back):
+    back-small, back-medium, back-large
+  Back panel (lower back):
+    back-bottom-small, back-bottom-medium, back-bottom-large
 
 Available positions:
   chest, dead-center, back
