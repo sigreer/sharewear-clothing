@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Product Viewer Example</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .viewer-wrapper {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin: 20px 0;
+        }
+        model-viewer {
+            width: 100%;
+            height: 600px;
+            background-color: #f0f0f0;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .info h3 {
+            margin-top: 0;
+        }
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+    </style>
+    <!-- Include model-viewer web component -->
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>3D Product Viewer</h1>
+
+        <div class="viewer-wrapper">
+            <h2>Interactive Yellow T-Shirt Model</h2>
+            <model-viewer
+                src="yellow-shirt-compressed.glb"
+                alt="Yellow t-shirt with custom design"
+                camera-controls
+                touch-action="pan-y"
+                auto-rotate
+                auto-rotate-delay="3000"
+                rotation-per-second="30deg"
+                environment-image="neutral"
+                shadow-intensity="1"
+                exposure="1"
+                camera-orbit="0deg 75deg 2.5m"
+                min-camera-orbit="auto auto 1m"
+                max-camera-orbit="auto auto 10m"
+                field-of-view="30deg"
+                loading="eager"
+            >
+                <div slot="progress-bar" style="display: none;"></div>
+            </model-viewer>
+        </div>
+
+        <div class="info">
+            <h3>Features:</h3>
+            <ul>
+                <li>✨ <strong>Interactive 3D model</strong> - Click and drag to rotate</li>
+                <li>📱 <strong>Mobile-friendly</strong> - Touch gestures supported</li>
+                <li>🔄 <strong>Auto-rotate</strong> - Automatically rotates after 3 seconds</li>
+                <li>🎨 <strong>Custom colors & designs</strong> - Dynamically generated textures</li>
+                <li>⚡ <strong>Optimized</strong> - 5.3 MB with Draco compression</li>
+            </ul>
+
+            <h3>Integration Options:</h3>
+            <p><strong>Option 1: Using model-viewer (Recommended)</strong></p>
+            <pre><code>&lt;script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"&gt;&lt;/script&gt;
+
+&lt;model-viewer
+    src="yellow-shirt.glb"
+    alt="Product description"
+    camera-controls
+    auto-rotate
+    environment-image="neutral"
+    shadow-intensity="1"
+&gt;&lt;/model-viewer&gt;</code></pre>
+
+            <p><strong>Option 2: Using Three.js</strong></p>
+            <pre><code>import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+
+const loader = new GLTFLoader();
+loader.load('yellow-shirt.glb', (gltf) => {
+    scene.add(gltf.scene);
+});</code></pre>
+
+            <p><strong>Option 3: Shopify Integration</strong></p>
+            <p>Use Shopify's <code>model-viewer</code> component in your product template for AR support on iOS/Android.</p>
+        </div>
+
+        <div class="info">
+            <h3>Performance Tips:</h3>
+            <ul>
+                <li>Use Draco compression (<code>--draco</code> flag) to reduce file size by ~50%</li>
+                <li>Consider lazy loading for pages with multiple models</li>
+                <li>Host GLB files on a CDN for faster loading</li>
+                <li>For AR experiences, enable camera access on mobile</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
