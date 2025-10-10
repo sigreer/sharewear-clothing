@@ -10,12 +10,95 @@ from pathlib import Path
 from PIL import Image
 
 
-def load_template(path: Path) -> Image.Image:
-    """Load and validate template image."""
+def parse_color(color_input: str) -> tuple:
+    """Parse color from hex code or color name to RGBA tuple.
+
+    Supports:
+    - Hex codes: #RRGGBB or #RRGGBBAA
+    - Named colors: white, black, red, blue, green, etc.
+    """
+    # Standard color names to RGB mapping
+    color_names = {
+        'white': (255, 255, 255),
+        'black': (0, 0, 0),
+        'red': (255, 0, 0),
+        'dark-red': (139, 0, 0),
+        'green': (0, 128, 0),
+        'dark-green': (0, 100, 0),
+        'blue': (0, 0, 255),
+        'dark-blue': (0, 0, 139),
+        'navy': (0, 0, 128),
+        'yellow': (255, 255, 0),
+        'orange': (255, 165, 0),
+        'purple': (128, 0, 128),
+        'pink': (255, 192, 203),
+        'gray': (128, 128, 128),
+        'grey': (128, 128, 128),
+        'light-gray': (211, 211, 211),
+        'light-grey': (211, 211, 211),
+        'dark-gray': (169, 169, 169),
+        'dark-grey': (169, 169, 169),
+        'brown': (165, 42, 42),
+        'beige': (245, 245, 220),
+        'cream': (255, 253, 208),
+    }
+
+    # Handle hex colors
+    if color_input.startswith('#'):
+        hex_color = color_input.lstrip('#')
+        if len(hex_color) == 6:
+            r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+            return (r, g, b, 255)
+        elif len(hex_color) == 8:
+            r, g, b, a = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16), int(hex_color[6:8], 16)
+            return (r, g, b, a)
+        else:
+            print(f"Error: Invalid hex color '{color_input}'. Use #RRGGBB or #RRGGBBAA format.")
+            sys.exit(1)
+
+    # Handle named colors
+    color_lower = color_input.lower()
+    if color_lower in color_names:
+        rgb = color_names[color_lower]
+        return rgb + (255,)  # Add full opacity
+
+    # Error if not found
+    available_colors = ', '.join(sorted(color_names.keys()))
+    print(f"Error: Unknown color '{color_input}'")
+    print(f"Available color names: {available_colors}")
+    print(f"Or use hex format: #RRGGBB or #RRGGBBAA")
+    sys.exit(1)
+
+
+def load_template(path: Path, fabric_color: tuple = None) -> Image.Image:
+    """Load template and optionally recolor white fabric areas with specified color.
+
+    Args:
+        path: Path to the template PNG file
+        fabric_color: Optional RGBA tuple (R, G, B, A) to replace white fabric areas
+
+    The template has white shirt shapes on transparent/black background.
+    When fabric_color is specified, white pixels are replaced with the color.
+    """
     try:
         img = Image.open(path)
         if img.mode != 'RGBA':
             img = img.convert('RGBA')
+
+        # If fabric color specified, replace white pixels with the color
+        if fabric_color:
+            pixels = img.load()
+            width, height = img.size
+
+            # Replace white/light pixels (shirt fabric) with the specified color
+            for y in range(height):
+                for x in range(width):
+                    r, g, b, a = pixels[x, y]
+                    # If pixel is mostly white (fabric area) and not transparent
+                    if r > 200 and g > 200 and b > 200 and a > 200:
+                        # Replace RGB with fabric color, keep alpha
+                        pixels[x, y] = fabric_color[:3] + (a,)
+
         return img
     except FileNotFoundError:
         print(f"Error: Template file not found: {path}")
@@ -329,10 +412,10 @@ Available sizes:
         help='Path for output PNG file'
     )
     parser.add_argument(
-        '--color',
+        '-f', '--fabric-color',
         type=str,
-        default='white',
-        help='Shirt color variant (default: white, future: black)'
+        default=None,
+        help='Fabric/shirt color as hex (#RRGGBB) or name (white, black, red, yellow, navy, etc.)'
     )
     parser.add_argument(
         '--verbose',
@@ -367,10 +450,17 @@ Available sizes:
             print(f"Using position: {args.position}, size: {size}")
         position_config = get_position_config(args.position, size)
 
+    # Parse fabric color if specified
+    fabric_color = None
+    if args.fabric_color:
+        fabric_color = parse_color(args.fabric_color)
+        if args.verbose:
+            print(f"Using fabric color: {args.fabric_color} -> RGBA{fabric_color}")
+
     # Load images
     if args.verbose:
         print(f"Loading template: {args.template}")
-    template = load_template(args.template)
+    template = load_template(args.template, fabric_color)
 
     if args.verbose:
         print(f"Loading design: {args.design}")
