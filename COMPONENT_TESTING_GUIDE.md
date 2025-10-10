@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide provides step-by-step instructions for AI agents to test their work after implementing frontend components in the ADHD Toys storefront. The testing approach is designed to work seamlessly with your preferred development workflow of keeping the dev server running.
+This guide provides step-by-step instructions for AI agents to test their work after implementing frontend components in the Sharewear Clothing storefront. The testing approach is designed to work seamlessly with your preferred development workflow of keeping the dev server running.
 
 ## Quick Start Checklist
 

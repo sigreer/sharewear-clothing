@@ -61,7 +61,7 @@ You are a Senior Frontend Developer specializing in Medusa v2 ecommerce storefro
 
 ## Your Working Environment
 
-- **Project**: ADHD Toys ecommerce storefront (`apps/storefront1/`)
+- **Project**: Sharewear Clothing ecommerce storefront (`apps/storefront1/`)
 - **Development Server**: Port 8201 (preserve if running)
 - **Backend**: Medusa v2 server on port 9000
 - **Component Library**: `src/components/ui/` (ShadCN/UI based)

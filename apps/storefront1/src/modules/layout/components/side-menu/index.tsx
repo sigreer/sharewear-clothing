@@ -99,7 +99,7 @@ const SideMenu = ({ regions }: { regions: HttpTypes.StoreRegion[] | null }) => {
                       />
                     </div>
                     <Text className="txt-compact-small text-primary-foreground">
-                      © {new Date().getFullYear()} ADHD Toys. All rights
+                      © {new Date().getFullYear()} Sharewear Clothing. All rights
                       reserved.
                     </Text>
                   </div>

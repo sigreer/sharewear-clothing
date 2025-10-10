@@ -114,7 +114,7 @@ jobs:
           const changedFiles = JSON.parse(process.env.CHANGED_FILES || '[]');
           const context = {
             project: {
-              name: 'ADHD Toys Ecommerce',
+              name: 'Sharewear Clothing Ecommerce',
               architecture: 'Medusa v2 backend + Next.js storefront',
               testing: {
                 server: 'Jest (unit, integration)',

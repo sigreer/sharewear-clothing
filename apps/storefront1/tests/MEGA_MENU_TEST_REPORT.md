@@ -2,7 +2,7 @@
 
 **Test Date:** October 3, 2025
 **Tester:** Claude (QA Engineer)
-**Application:** Sharewear.clothing - ADHD Toys Storefront
+**Application:** Sharewear.clothing - Sharewear Clothing Storefront
 **Backend:** http://sharewear.local:9000
 **Frontend:** http://sharewear.local:8201
 

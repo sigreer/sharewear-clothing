@@ -20,8 +20,8 @@ export async function generateMetadata({
   return {
     title: query ? `Search results for "${query}"` : "Search Products",
     description: query
-      ? `Find products matching "${query}" in our ADHD toys collection`
-      : "Search our collection of ADHD-friendly toys and products",
+      ? `Find products matching "${query}" `
+      : "Search our collection of geek",
   }
 }
 
