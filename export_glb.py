@@ -44,6 +44,24 @@ def export_glb(blend_file, texture_path, output_path, use_draco=False):
     # Load the blend file
     bpy.ops.wm.open_mainfile(filepath=blend_file)
 
+    # Center the mesh origin for proper rotation in web viewers
+    # This ensures the model rotates around its center, not an offset point
+    for obj in bpy.data.objects:
+        if obj.type == 'MESH':
+            # Select the object
+            bpy.context.view_layer.objects.active = obj
+            obj.select_set(True)
+
+            # Set origin to geometry center (mass center)
+            bpy.ops.object.origin_set(type='ORIGIN_CENTER_OF_MASS', center='BOUNDS')
+
+            # Optionally move to world origin for consistent positioning
+            obj.location = (0, 0, 0)
+
+            print(f"Centered origin for mesh: {obj.name}")
+
+            obj.select_set(False)
+
     # Find and replace base color image texture
     for mat in bpy.data.materials:
         if mat.use_nodes:
@@ -76,6 +94,17 @@ def export_glb(blend_file, texture_path, output_path, use_draco=False):
                     mat.blend_method = 'BLEND'
                     if hasattr(mat, 'shadow_method'):
                         mat.shadow_method = 'HASHED'
+
+                    # Fix transparency rendering issues
+                    mat.use_backface_culling = False  # Render both sides of fabric
+
+                    # Set BSDF for better alpha handling
+                    if bsdf_node:
+                        # Ensure alpha is respected in shader
+                        bsdf_node.inputs['Alpha'].default_value = 1.0
+                        # Disable screen space refraction (can cause artifacts)
+                        if 'Transmission' in bsdf_node.inputs:
+                            bsdf_node.inputs['Transmission'].default_value = 0.0
 
     # Ensure output directory exists
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
