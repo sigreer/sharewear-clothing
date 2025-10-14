@@ -29,10 +29,11 @@
     "db:seed": "cd apps/server && bun run seed",
     "setup": "bun install && bun run db:migrate && bun run db:seed",
     "clean": "rm -rf node_modules apps/*/node_modules apps/*/.next apps/*/dist apps/*/.medusa",
-    "reset": "bun run clean && bun install"
+    "reset": "bun run clean && bun install",
+    "agent-observer": "cd scripts && ./start-agent-observer.sh"
   },
   "devDependencies": {
-    "shadcn": "^3.3.1"
+    "shadcn": "^3.4.0"
   },
   "keywords": [
     "sharewear",
