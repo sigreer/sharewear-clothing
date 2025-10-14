@@ -40,6 +40,7 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
+logs/
 
 # Runtime data
 pids
@@ -162,3 +163,9 @@ output/*.gltf
 assets/drawing.svg
 assets/manual-save-*.png
 assets/this-is-*.png
+
+# Agent observer apps (separate repos/experimental)
+apps/agent-observer-*/
+
+# Draft documentation
+docs/draft/
