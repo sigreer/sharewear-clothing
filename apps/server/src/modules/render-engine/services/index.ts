@@ -15,6 +15,7 @@ export type {
   ExecuteComposeParams,
   ComposeResult,
   ExecuteRenderParams,
+  RenderMode,
   RenderResult,
   EnvironmentValidation
 } from "./python-executor-service"

@@ -22,6 +22,8 @@ export type ExecuteComposeParams = {
   preset: PresetType
   /** Output path for composited result */
   outputPath: string
+  /** Optional fabric/shirt color (hex #RRGGBB or named color like 'black', 'navy', 'red', etc.) */
+  fabricColor?: string
 }
 
 /**
@@ -37,6 +39,11 @@ export type ComposeResult = {
 }
 
 /**
+ * Render mode for Blender execution
+ */
+export type RenderMode = 'all' | 'images-only' | 'animation-only'
+
+/**
  * Parameters for executing the render script
  */
 export type ExecuteRenderParams = {
@@ -48,8 +55,12 @@ export type ExecuteRenderParams = {
   outputDir: string
   /** Render samples for quality (default: 128) */
   samples?: number
-  /** Skip animation render (default: false) */
-  skipAnimation?: boolean
+  /** Render mode: 'all' (default), 'images-only', or 'animation-only' */
+  renderMode?: RenderMode
+  /** Optional fabric/shirt color (hex #RRGGBB or named color) - only used when applying texture without pre-composition */
+  fabricColor?: string
+  /** Optional background color (hex #RRGGBB, named color, or 'transparent' for transparent background) */
+  backgroundColor?: string
 }
 
 /**
@@ -58,8 +69,8 @@ export type ExecuteRenderParams = {
 export type RenderResult = {
   /** Whether execution succeeded */
   success: boolean
-  /** Path to rendered still image if successful */
-  renderedImage?: string
+  /** Paths to rendered still images (typically 6 camera angles: front, left, right, back, front_45deg_left, front_45deg_right) */
+  renderedImages?: string[]
   /** Path to animation file if successful and generated */
   animation?: string
   /** Error message if failed */
@@ -83,12 +94,18 @@ export type EnvironmentValidation = {
 }
 
 /**
- * Valid presets for design placement
+ * Valid presets for design placement (must match presets in compose_design.py)
  */
 const VALID_PRESETS: PresetType[] = [
+  "chest-small",
+  "chest-medium",
   "chest-large",
-  "dead-center-medium",
-  "back-small"
+  "back-small",
+  "back-medium",
+  "back-large",
+  "back-bottom-small",
+  "back-bottom-medium",
+  "back-bottom-large"
 ]
 
 /**
@@ -177,6 +194,11 @@ export default class PythonExecutorService {
         "--output", params.outputPath
       ]
 
+      // Add optional fabric color if specified
+      if (params.fabricColor) {
+        args.push("--fabric-color", params.fabricColor)
+      }
+
       // Execute Python script
       const result = await this.executePythonScript("python3", args)
 
@@ -242,14 +264,16 @@ export default class PythonExecutorService {
    */
   async executeRender(params: ExecuteRenderParams): Promise<RenderResult> {
     const samples = params.samples ?? 128
-    const skipAnimation = params.skipAnimation ?? false
+    const renderMode = params.renderMode ?? 'all'
 
     this.logger_.info("Executing render script", {
       blendFile: params.blendFile,
       texture: params.texturePath,
       outputDir: params.outputDir,
       samples,
-      skipAnimation
+      renderMode,
+      fabricColor: params.fabricColor,
+      backgroundColor: params.backgroundColor
     })
 
     try {
@@ -273,9 +297,22 @@ export default class PythonExecutorService {
         samples.toString()
       ]
 
-      // Add --no-animation flag if requested
-      if (skipAnimation) {
-        blenderArgs.push("--no-animation")
+      // Add render mode flags
+      if (renderMode === 'images-only') {
+        blenderArgs.push("--images-only")
+      } else if (renderMode === 'animation-only') {
+        blenderArgs.push("--animation-only")
+      }
+      // 'all' mode needs no flag (default behavior)
+
+      // Add optional fabric color
+      if (params.fabricColor) {
+        blenderArgs.push("--fabric-color", params.fabricColor)
+      }
+
+      // Add optional background color
+      if (params.backgroundColor) {
+        blenderArgs.push("--background-color", params.backgroundColor)
       }
 
       // Execute Blender script
@@ -296,20 +333,20 @@ export default class PythonExecutorService {
       }
 
       // Parse output paths from stdout
-      const { renderedImage, animation } = this.parseRenderOutput(
+      const { renderedImages, animation } = this.parseRenderOutput(
         result.stdout,
         params.outputDir,
-        skipAnimation
+        renderMode
       )
 
       this.logger_.info("Render completed successfully", {
-        renderedImage,
+        renderedImages,
         animation
       })
 
       const renderResult: RenderResult = {
         success: true,
-        renderedImage,
+        renderedImages,
         animation
       }
       return renderResult
@@ -668,37 +705,39 @@ export default class PythonExecutorService {
   }
 
   /**
-   * Parse render output to extract file paths
+   * Parse render output to extract file paths from multiple camera angles
    *
    * @param stdout - Standard output from render script
    * @param outputDir - Output directory
-   * @param skipAnimation - Whether animation was skipped
-   * @returns Parsed file paths
+   * @param renderMode - Render mode (determines if animation should be parsed)
+   * @returns Parsed file paths (array of images for 6 camera angles + optional animation)
    */
   protected parseRenderOutput(
     stdout: string,
     outputDir: string,
-    skipAnimation: boolean
-  ): { renderedImage?: string; animation?: string } {
-    const result: { renderedImage?: string; animation?: string } = {}
+    renderMode: RenderMode
+  ): { renderedImages?: string[]; animation?: string } {
+    const result: { renderedImages?: string[]; animation?: string } = {}
 
-    // Look for "Rendered still image: <filename>" pattern
-    const imageMatch = stdout.match(/Rendered still image: (.+\.png)/i)
-    if (imageMatch) {
-      result.renderedImage = path.join(outputDir, imageMatch[1])
+    // Look for all "Rendered <angle>: <filename>" patterns
+    // The script outputs lines like "Rendered front_0deg: design_front_0deg.png"
+    const imageMatches = stdout.matchAll(/Rendered \w+(?:_\d+deg)?(?:_\w+)?: (.+\.png)/gi)
+    const images: string[] = []
+    for (const match of imageMatches) {
+      images.push(path.join(outputDir, match[1]))
+    }
+
+    if (images.length > 0) {
+      result.renderedImages = images
     }
 
     // Look for "Rendered animation: <filename>" pattern
-    if (!skipAnimation) {
+    if (renderMode !== 'images-only') {
       const animationMatch = stdout.match(/Rendered animation: (.+\.mp4)/i)
       if (animationMatch) {
         result.animation = path.join(outputDir, animationMatch[1])
       }
     }
-
-    // Fallback: Look for any PNG file in output directory
-    // This is not implemented to keep the method synchronous
-    // The caller should verify file existence if needed
 
     return result
   }

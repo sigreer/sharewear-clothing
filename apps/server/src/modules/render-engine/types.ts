@@ -17,11 +17,35 @@ export type RenderJobStatus =
 
 /**
  * Predefined t-shirt design placement presets
+ *
+ * Front panel presets (chest area):
+ * - chest-small: Small zone at very top of chest
+ * - chest-medium: Medium zone covering chest area
+ * - chest-large: Large zone covering most of front
+ *
+ * Back panel presets (upper back area):
+ * - back-small: Small zone at top of back
+ * - back-medium: Medium zone on upper back
+ * - back-large: Large zone covering upper/mid back
+ *
+ * Back panel presets (lower back area):
+ * - back-bottom-small: Small zone at lower back
+ * - back-bottom-medium: Medium zone at lower back
+ * - back-bottom-large: Large zone at lower back
  */
 export type PresetType =
-  | 'chest-large'           // Large chest print (typical band tee style)
-  | 'dead-center-medium'    // Medium centered chest print
-  | 'back-small'            // Small back print (upper back)
+  // Front panel presets
+  | 'chest-small'
+  | 'chest-medium'
+  | 'chest-large'
+  // Back panel presets (upper)
+  | 'back-small'
+  | 'back-medium'
+  | 'back-large'
+  // Back panel presets (lower)
+  | 'back-bottom-small'
+  | 'back-bottom-medium'
+  | 'back-bottom-large'
 
 /**
  * Placement configuration for design on t-shirt
@@ -131,26 +155,20 @@ export type PresetConfiguration = {
 
 /**
  * Default preset configurations
+ *
+ * Note: The actual preset logic is handled by compose_design.py.
+ * These values are for reference/documentation only.
  */
 export const DEFAULT_PRESETS: PresetConfiguration = {
-  'chest-large': {
-    x: 0.5,
-    y: 0.35,
-    scale: 0.4,
-    rotation: 0
-  },
-  'dead-center-medium': {
-    x: 0.5,
-    y: 0.5,
-    scale: 0.3,
-    rotation: 0
-  },
-  'back-small': {
-    x: 0.5,
-    y: 0.25,
-    scale: 0.2,
-    rotation: 0
-  }
+  'chest-small': { x: 0.5, y: 0.15, scale: 0.45, rotation: 0 },
+  'chest-medium': { x: 0.5, y: 0.22, scale: 0.6, rotation: 0 },
+  'chest-large': { x: 0.5, y: 0.5, scale: 0.75, rotation: 0 },
+  'back-small': { x: 0.5, y: 0.12, scale: 0.4, rotation: 0 },
+  'back-medium': { x: 0.5, y: 0.3, scale: 0.6, rotation: 0 },
+  'back-large': { x: 0.5, y: 0.25, scale: 0.7, rotation: 0 },
+  'back-bottom-small': { x: 0.5, y: 0.8, scale: 0.5, rotation: 0 },
+  'back-bottom-medium': { x: 0.5, y: 0.75, scale: 0.6, rotation: 0 },
+  'back-bottom-large': { x: 0.5, y: 0.7, scale: 0.65, rotation: 0 }
 }
 
 /**
