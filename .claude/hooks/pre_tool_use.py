@@ -6,50 +6,126 @@
 import json
 import sys
 import re
+import shutil
 from pathlib import Path
+from datetime import datetime
 from utils.constants import ensure_session_log_dir
+
+def extract_rm_targets(command):
+    """
+    Extract file/directory paths from rm commands.
+    Returns list of paths that will be deleted.
+    """
+    import shlex
+
+    try:
+        parts = shlex.split(command)
+    except:
+        # If shlex fails, use simple split
+        parts = command.split()
+
+    # Find rm command and extract targets (non-flag arguments after rm)
+    targets = []
+    found_rm = False
+
+    for part in parts:
+        if 'rm' in part.lower():
+            found_rm = True
+            continue
+
+        if found_rm and not part.startswith('-'):
+            targets.append(part)
+
+    return targets
+
+def backup_files_before_rm(targets, backup_base_dir='/home/simon/Dev/sigreer/sharewear.clothing/deleted-temp'):
+    """
+    Create backups of files/directories before they are deleted.
+    Returns True if backups were created successfully, False otherwise.
+    """
+    if not targets:
+        return True
+
+    try:
+        # Create timestamped backup directory
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_dir = Path(backup_base_dir) / timestamp
+        backup_dir.mkdir(parents=True, exist_ok=True)
+
+        backed_up = []
+
+        for target in targets:
+            target_path = Path(target).resolve()
+
+            # Skip if target doesn't exist
+            if not target_path.exists():
+                continue
+
+            # Create backup with original structure
+            backup_target = backup_dir / target_path.name
+
+            # Handle potential name collisions
+            counter = 1
+            original_backup = backup_target
+            while backup_target.exists():
+                backup_target = backup_dir / f"{original_backup.stem}_{counter}{original_backup.suffix}"
+                counter += 1
+
+            # Copy file or directory
+            if target_path.is_file():
+                shutil.copy2(target_path, backup_target)
+                backed_up.append(str(target_path))
+            elif target_path.is_dir():
+                shutil.copytree(target_path, backup_target)
+                backed_up.append(str(target_path))
+
+        if backed_up:
+            print(f"✓ Backed up to {backup_dir}:", file=sys.stderr)
+            for item in backed_up:
+                print(f"  - {item}", file=sys.stderr)
+
+        return True
+
+    except Exception as e:
+        print(f"⚠ Backup failed: {e}", file=sys.stderr)
+        print("Blocking rm command due to backup failure", file=sys.stderr)
+        return False
 
 def is_dangerous_rm_command(command):
     """
-    Comprehensive detection of dangerous rm commands.
-    Matches various forms of rm -rf and similar destructive patterns.
+    Detect rm commands and check if they target critical system paths.
+    Returns True only for truly dangerous system paths.
     """
     # Normalize command by removing extra spaces and converting to lowercase
     normalized = ' '.join(command.lower().split())
-    
-    # Pattern 1: Standard rm -rf variations
-    patterns = [
-        r'\brm\s+.*-[a-z]*r[a-z]*f',  # rm -rf, rm -fr, rm -Rf, etc.
-        r'\brm\s+.*-[a-z]*f[a-z]*r',  # rm -fr variations
-        r'\brm\s+--recursive\s+--force',  # rm --recursive --force
-        r'\brm\s+--force\s+--recursive',  # rm --force --recursive
-        r'\brm\s+-r\s+.*-f',  # rm -r ... -f
-        r'\brm\s+-f\s+.*-r',  # rm -f ... -r
+
+    # Only block rm commands targeting critical system paths
+    critical_paths = [
+        r'\s+/$',           # Root directory exactly
+        r'\s+/\s+',         # Root with space after
+        r'\s+/\*\s*$',      # Root with wildcard
+        r'\s+/bin',         # System binaries
+        r'\s+/boot',        # Boot files
+        r'\s+/dev',         # Device files
+        r'\s+/etc',         # System configuration
+        r'\s+/lib',         # System libraries
+        r'\s+/proc',        # Process info
+        r'\s+/root',        # Root home
+        r'\s+/sbin',        # System binaries
+        r'\s+/sys',         # System files
+        r'\s+/usr',         # User programs
+        r'\s+/var',         # Variable data
     ]
-    
-    # Check for dangerous patterns
-    for pattern in patterns:
-        if re.search(pattern, normalized):
+
+    # Check if rm command exists
+    if not re.search(r'\brm\s+', normalized):
+        return False
+
+    # Check for critical system paths
+    for path in critical_paths:
+        if re.search(path, normalized):
             return True
-    
-    # Pattern 2: Check for rm with recursive flag targeting dangerous paths
-    dangerous_paths = [
-        r'/',           # Root directory
-        r'/\*',         # Root with wildcard
-        r'~',           # Home directory
-        r'~/',          # Home directory path
-        r'\$HOME',      # Home environment variable
-        r'\.\.',        # Parent directory references
-        r'\*',          # Wildcards in general rm -rf context
-        r'\.',          # Current directory
-        r'\.\s*$',      # Current directory at end of command
-    ]
-    
-    if re.search(r'\brm\s+.*-[a-z]*r', normalized):  # If rm has recursive flag
-        for path in dangerous_paths:
-            if re.search(path, normalized):
-                return True
-    
+
     return False
 
 def is_env_file_access(tool_name, tool_input):
@@ -91,19 +167,28 @@ def main():
         tool_input = input_data.get('tool_input', {})
         
         # Check for .env file access (blocks access to sensitive environment files)
-        if is_env_file_access(tool_name, tool_input):
-            print("BLOCKED: Access to .env files containing sensitive data is prohibited", file=sys.stderr)
-            print("Use .env.sample for template files instead", file=sys.stderr)
-            sys.exit(2)  # Exit code 2 blocks tool call and shows error to Claude
+        # COMMENTED OUT: Allowing .env file access for development
+        # if is_env_file_access(tool_name, tool_input):
+        #     print("BLOCKED: Access to .env files containing sensitive data is prohibited", file=sys.stderr)
+        #     print("Use .env.sample for template files instead", file=sys.stderr)
+        #     sys.exit(2)  # Exit code 2 blocks tool call and shows error to Claude
         
-        # Check for dangerous rm -rf commands
+        # Handle rm commands: backup files before deletion
         if tool_name == 'Bash':
             command = tool_input.get('command', '')
-            
-            # Block rm -rf commands with comprehensive pattern matching
+
+            # Block only truly dangerous system path deletions
             if is_dangerous_rm_command(command):
-                print("BLOCKED: Dangerous rm command detected and prevented", file=sys.stderr)
+                print("BLOCKED: Dangerous system path deletion detected and prevented", file=sys.stderr)
                 sys.exit(2)  # Exit code 2 blocks tool call and shows error to Claude
+
+            # For other rm commands, create backups before proceeding
+            if re.search(r'\brm\s+', command):
+                targets = extract_rm_targets(command)
+                if targets:
+                    # Create backups; only proceed if backup succeeds
+                    if not backup_files_before_rm(targets):
+                        sys.exit(2)  # Block if backup fails
         
         # Extract session_id
         session_id = input_data.get('session_id', 'unknown')
