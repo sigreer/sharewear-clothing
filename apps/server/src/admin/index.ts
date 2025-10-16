@@ -7,6 +7,9 @@ import CategorySelectorPage, {
 import MegaMenuPage, {
   config as megaMenuConfig
 } from "./routes/catalog/mega-menu/page"
+import RenderWizardPage, {
+  config as renderWizardConfig
+} from "./routes/products/[id]/render-wizard/page"
 
 // eslint-disable-next-line import/no-default-export
 export default [
@@ -24,5 +27,10 @@ export default [
     path: "/catalog/mega-menu",
     Component: MegaMenuPage,
     config: megaMenuConfig
+  },
+  {
+    path: "/products/:id/render-wizard",
+    Component: RenderWizardPage,
+    config: renderWizardConfig
   }
 ] as const
