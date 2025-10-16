@@ -371,6 +371,18 @@ export default class FileManagementService {
   }
 
   /**
+   * Clean up temporary files older than specified milliseconds
+   *
+   * @param ageMs - Age threshold in milliseconds
+   * @returns Number of directories cleaned
+   */
+  async cleanupOldTempFiles(ageMs: number): Promise<number> {
+    const cutoffDate = new Date(Date.now() - ageMs)
+    const result = await this.cleanupTempFiles(cutoffDate)
+    return result.count
+  }
+
+  /**
    * Create a temporary directory for a render job
    *
    * @param jobId - Render job ID

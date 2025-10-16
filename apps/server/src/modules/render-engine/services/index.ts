@@ -7,7 +7,10 @@ export { default as RenderJobService } from "./render-job-service"
 export type {
   CreateRenderJobInput,
   UpdateJobStatusInput,
-  ListRenderJobsFilters
+  ListRenderJobsFilters,
+  RenderJobFilters,
+  RenderJobResults,
+  RenderJobStats
 } from "./render-job-service"
 
 export { default as PythonExecutorService } from "./python-executor-service"
@@ -27,3 +30,10 @@ export type {
   OutputType,
   CleanupResult
 } from "./file-management-service"
+
+export { default as MediaAssociationService } from "./media-association-service"
+export type {
+  MediaMetadata,
+  RenderOutputs,
+  ProductMediaWithMetadata
+} from "./media-association-service"

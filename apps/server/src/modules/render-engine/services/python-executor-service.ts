@@ -157,11 +157,9 @@ export default class PythonExecutorService {
     this.composeScriptPath_ = path.join(PROJECT_ROOT, "compose_design.py")
     this.renderScriptPath_ = path.join(PROJECT_ROOT, "render_design.py")
 
-    this.logger_.debug("PythonExecutorService initialized", {
-      composeScript: this.composeScriptPath_,
-      renderScript: this.renderScriptPath_,
-      projectRoot: PROJECT_ROOT
-    })
+    this.logger_.debug(
+      `PythonExecutorService initialized: composeScript=${this.composeScriptPath_}, renderScript=${this.renderScriptPath_}, projectRoot=${PROJECT_ROOT}`
+    )
   }
 
   /**
@@ -172,11 +170,9 @@ export default class PythonExecutorService {
    * @throws {MedusaError} If validation fails
    */
   async executeCompose(params: ExecuteComposeParams): Promise<ComposeResult> {
-    this.logger_.info("Executing composition script", {
-      template: params.templatePath,
-      design: params.designPath,
-      preset: params.preset
-    })
+    this.logger_.info(
+      `Executing composition script: template=${params.templatePath}, design=${params.designPath}, preset=${params.preset}`
+    )
 
     try {
       // Validate inputs
@@ -203,11 +199,9 @@ export default class PythonExecutorService {
       const result = await this.executePythonScript("python3", args)
 
       if (result.exitCode !== 0) {
-        this.logger_.error("Composition script failed", {
-          exitCode: result.exitCode,
-          stderr: result.stderr,
-          stdout: result.stdout
-        })
+        this.logger_.error(
+          `Composition script failed: exitCode=${result.exitCode}, stderr=${result.stderr.substring(0, 200)}, stdout=${result.stdout.substring(0, 200)}`
+        )
 
         const composeResult: ComposeResult = {
           success: false,
@@ -219,9 +213,9 @@ export default class PythonExecutorService {
       // Verify output file was created
       const outputExists = existsSync(params.outputPath)
       if (!outputExists) {
-        this.logger_.error("Composition script succeeded but output file not found", {
-          outputPath: params.outputPath
-        })
+        this.logger_.error(
+          `Composition script succeeded but output file not found: outputPath=${params.outputPath}`
+        )
 
         const composeResult: ComposeResult = {
           success: false,
@@ -230,9 +224,9 @@ export default class PythonExecutorService {
         return composeResult
       }
 
-      this.logger_.info("Composition completed successfully", {
-        outputPath: params.outputPath
-      })
+      this.logger_.info(
+        `Composition completed successfully: outputPath=${params.outputPath}`
+      )
 
       const composeResult: ComposeResult = {
         success: true,
@@ -241,7 +235,7 @@ export default class PythonExecutorService {
       return composeResult
 
     } catch (error) {
-      this.logger_.error("Composition execution error", { error })
+      this.logger_.error(`Composition execution error: ${error}`)
 
       if (error instanceof MedusaError) {
         throw error
@@ -266,15 +260,9 @@ export default class PythonExecutorService {
     const samples = params.samples ?? 128
     const renderMode = params.renderMode ?? 'all'
 
-    this.logger_.info("Executing render script", {
-      blendFile: params.blendFile,
-      texture: params.texturePath,
-      outputDir: params.outputDir,
-      samples,
-      renderMode,
-      fabricColor: params.fabricColor,
-      backgroundColor: params.backgroundColor
-    })
+    this.logger_.info(
+      `Executing render script: blendFile=${params.blendFile}, texture=${params.texturePath}, outputDir=${params.outputDir}, samples=${samples}, renderMode=${renderMode}, fabricColor=${params.fabricColor}, backgroundColor=${params.backgroundColor}`
+    )
 
     try {
       // Validate inputs
@@ -319,11 +307,9 @@ export default class PythonExecutorService {
       const result = await this.executePythonScript("blender", blenderArgs)
 
       if (result.exitCode !== 0) {
-        this.logger_.error("Render script failed", {
-          exitCode: result.exitCode,
-          stderr: result.stderr,
-          stdout: result.stdout
-        })
+        this.logger_.error(
+          `Render script failed: exitCode=${result.exitCode}, stderr=${result.stderr.substring(0, 200)}, stdout=${result.stdout.substring(0, 200)}`
+        )
 
         const renderResult: RenderResult = {
           success: false,
@@ -339,10 +325,9 @@ export default class PythonExecutorService {
         renderMode
       )
 
-      this.logger_.info("Render completed successfully", {
-        renderedImages,
-        animation
-      })
+      this.logger_.info(
+        `Render completed successfully: renderedImages=${renderedImages?.length || 0} images, animation=${animation || 'none'}`
+      )
 
       const renderResult: RenderResult = {
         success: true,
@@ -352,7 +337,7 @@ export default class PythonExecutorService {
       return renderResult
 
     } catch (error) {
-      this.logger_.error("Render execution error", { error })
+      this.logger_.error(`Render execution error: ${error}`)
 
       if (error instanceof MedusaError) {
         throw error
@@ -406,10 +391,54 @@ export default class PythonExecutorService {
       }
 
     } catch (error) {
-      this.logger_.error("Environment validation error", { error })
+      this.logger_.error(`Environment validation error: ${error}`)
     }
 
     return envResult
+  }
+
+  /**
+   * Validate a color value (hex code or named color)
+   *
+   * @param color - Color value to validate
+   * @param paramName - Parameter name for error messages
+   * @throws {MedusaError} If color is invalid
+   */
+  protected validateColor(color: string, paramName: string): void {
+    if (!color || typeof color !== "string") {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `${paramName} must be a non-empty string`
+      )
+    }
+
+    // Hex color validation: #RRGGBB or #RRGGBBAA
+    const hexPattern = /^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/
+    if (hexPattern.test(color)) {
+      return // Valid hex color
+    }
+
+    // Named color validation (must match colors supported by Python scripts)
+    const validNamedColors = [
+      'white', 'black',
+      'red', 'dark-red',
+      'green', 'dark-green',
+      'blue', 'dark-blue', 'navy',
+      'yellow', 'orange', 'purple', 'pink',
+      'gray', 'grey', 'light-gray', 'light-grey', 'dark-gray', 'dark-grey',
+      'brown', 'beige', 'cream',
+      'transparent' // Special value for background color
+    ]
+
+    if (validNamedColors.includes(color.toLowerCase())) {
+      return // Valid named color
+    }
+
+    // Neither hex nor valid named color
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `${paramName} must be a valid hex color (#RRGGBB) or one of: ${validNamedColors.join(", ")}`
+    )
   }
 
   /**
@@ -449,6 +478,11 @@ export default class PythonExecutorService {
         MedusaError.Types.INVALID_DATA,
         `Design file not found: ${params.designPath}`
       )
+    }
+
+    // Validate fabric color if specified
+    if (params.fabricColor) {
+      this.validateColor(params.fabricColor, "fabricColor")
     }
   }
 
@@ -491,6 +525,16 @@ export default class PythonExecutorService {
           "Render samples must be a number between 1 and 4096"
         )
       }
+    }
+
+    // Validate fabric color if specified
+    if (params.fabricColor) {
+      this.validateColor(params.fabricColor, "fabricColor")
+    }
+
+    // Validate background color if specified
+    if (params.backgroundColor) {
+      this.validateColor(params.backgroundColor, "backgroundColor")
     }
   }
 
@@ -642,10 +686,9 @@ export default class PythonExecutorService {
       // Set timeout to kill process tree
       const timeoutHandle = setTimeout(() => {
         timedOut = true
-        this.logger_.warn("Script execution timeout, killing process", {
-          command,
-          pid: child.pid
-        })
+        this.logger_.warn(
+          `Script execution timeout, killing process: command=${command}, pid=${child.pid}`
+        )
 
         // Kill process tree (not just main process)
         if (child.pid) {
@@ -663,7 +706,7 @@ export default class PythonExecutorService {
             }, 5000)
           } catch (error) {
             // Process may have already exited
-            this.logger_.debug("Error killing process", { error })
+            this.logger_.debug(`Error killing process: ${error}`)
           }
         }
       }, SCRIPT_TIMEOUT_MS)

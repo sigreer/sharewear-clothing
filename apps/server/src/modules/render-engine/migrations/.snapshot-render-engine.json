@@ -56,7 +56,7 @@
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": false,
+          "nullable": true,
           "mappedType": "text"
         },
         "composited_file_url": {
@@ -94,9 +94,15 @@
           "primary": false,
           "nullable": false,
           "enumItems": [
+            "chest-small",
+            "chest-medium",
             "chest-large",
-            "dead-center-medium",
-            "back-small"
+            "back-small",
+            "back-medium",
+            "back-large",
+            "back-bottom-small",
+            "back-bottom-medium",
+            "back-bottom-large"
           ],
           "mappedType": "enum"
         },

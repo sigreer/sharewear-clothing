@@ -29,16 +29,25 @@ const RenderJob = model.define(RENDER_JOB_TABLE, {
   ]).default('pending'),
 
   // Design and output URLs
-  design_file_url: model.text(),
+  design_file_url: model.text().nullable(),
   composited_file_url: model.text().nullable(),
   rendered_image_url: model.text().nullable(),
   animation_url: model.text().nullable(),
 
-  // Configuration
+  // Configuration - Design placement preset (9 available presets)
   preset: model.enum([
+    // Front panel presets
+    'chest-small',
+    'chest-medium',
     'chest-large',
-    'dead-center-medium',
-    'back-small'
+    // Back panel presets (upper)
+    'back-small',
+    'back-medium',
+    'back-large',
+    // Back panel presets (lower)
+    'back-bottom-small',
+    'back-bottom-medium',
+    'back-bottom-large'
   ]),
 
   // Reference to RenderTemplate (foreign key to render_template table)
