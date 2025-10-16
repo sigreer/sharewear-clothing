@@ -2,10 +2,23 @@
   "workflow_id": "FEAT-003",
   "execution_number": 1,
   "started_at": "2025-10-04T00:00:00Z",
+  "updated_at": "2025-10-15T14:45:00Z",
   "status": "in_progress",
+  "phase": "backend_complete_frontend_pending",
   "agents_invoked": [
     "technical-planning-architect",
-    "project-orchestrator"
+    "project-orchestrator",
+    "medusa-backend-developer",
+    "backend-qa-testing-specialist"
   ],
-  "environment": "development"
+  "environment": "development",
+  "completion_summary": {
+    "backend_tasks": 16,
+    "backend_completed": 16,
+    "frontend_tasks": 7,
+    "frontend_completed": 0,
+    "qa_tasks": 5,
+    "qa_completed": 0,
+    "overall_progress": "52%"
+  }
 }
