@@ -71,6 +71,8 @@ const deriveUrlFromAdminCors = () => {
 }
 
 const resolveLocalFileBackendUrl = () => {
+  // Prioritize explicit file base URL configuration
+  // This prevents the Tailscale IP from ADMIN_CORS overriding the desired sharewear.local hostname
   const baseCandidate =
     parseUrlCandidate(process.env.MEDUSA_FILE_BASE_URL) ||
     parseUrlCandidate(process.env.MEDUSA_PUBLIC_BASE_URL) ||

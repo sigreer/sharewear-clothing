@@ -56,6 +56,11 @@ const nextConfig = {
             },
           ]
         : []),
+      // Allow Tailscale IP range (100.64.0.0/10) for remote access
+      {
+        protocol: "http",
+        hostname: "100.108.185.11",
+      },
       {
         protocol: "https",
         hostname: "medusa-public-images.s3.eu-west-1.amazonaws.com",
