@@ -1,23 +1,23 @@
 /**
- * Render Queue Worker - Scheduled Job
+ * Render Queue Worker Loader
  *
- * This scheduled job runs continuously to process render jobs from the Bull queue.
+ * This loader initializes the Bull queue processor on application startup.
  * It enforces concurrency limits (max 2 concurrent renders) and integrates with
  * the render workflow.
  *
- * The worker is implemented as a scheduled job that initializes the Bull processor
- * on application startup and keeps it running throughout the application lifecycle.
+ * Loaders run once during application startup, making them ideal for
+ * initialization tasks like setting up queue workers.
  */
 
 import { MedusaContainer } from "@medusajs/framework/types"
-import { getRenderQueue } from "../modules/render-engine/jobs/queue-config"
+import { getRenderQueue } from "../jobs/queue-config"
 import {
   processRenderJob,
   onJobCompleted,
   onJobFailed,
   onJobProgress,
   onJobStalled
-} from "../modules/render-engine/jobs/process-render-job"
+} from "../jobs/process-render-job"
 
 /**
  * Maximum number of concurrent render jobs
@@ -32,18 +32,20 @@ const MAX_CONCURRENT_RENDERS = 2
 let workerInitialized = false
 
 /**
- * Render Queue Worker Job
+ * Render Queue Worker Loader
  *
  * Initializes the Bull queue processor to handle render jobs.
- * This runs once on application startup and keeps the worker active.
+ * This runs once on application startup.
  *
- * @param container - Medusa container for resolving services
+ * @param param0 - Container and logger from Medusa
  */
-export default async function renderQueueWorker(
+export default async function renderQueueWorkerLoader({
+  container,
+  logger
+}: {
   container: MedusaContainer
-): Promise<void> {
-  const logger = container.resolve("logger")
-
+  logger: any
+}): Promise<void> {
   // Prevent duplicate initialization
   if (workerInitialized) {
     logger.debug("[RenderQueueWorker] Worker already initialized, skipping")
@@ -63,27 +65,27 @@ export default async function renderQueueWorker(
     // Register event handlers
     queue.on("completed", (job, result) => {
       onJobCompleted(job, result, container).catch(err =>
-        logger.error("Error in completed handler:", err)
+        logger.error("[RenderQueueWorker] Error in completed handler:", err)
       )
     })
 
     queue.on("failed", (job, error) => {
       if (job) {
         onJobFailed(job, error, container).catch(err =>
-          logger.error("Error in failed handler:", err)
+          logger.error("[RenderQueueWorker] Error in failed handler:", err)
         )
       }
     })
 
     queue.on("progress", (job, progress) => {
       onJobProgress(job, progress, container).catch(err =>
-        logger.error("Error in progress handler:", err)
+        logger.error("[RenderQueueWorker] Error in progress handler:", err)
       )
     })
 
     queue.on("stalled", (job) => {
       onJobStalled(job, container).catch(err =>
-        logger.error("Error in stalled handler:", err)
+        logger.error("[RenderQueueWorker] Error in stalled handler:", err)
       )
     })
 
@@ -104,18 +106,4 @@ export default async function renderQueueWorker(
     )
     throw error
   }
-}
-
-/**
- * Job configuration
- *
- * This job runs only once on application startup to initialize the worker.
- * The worker then continues processing jobs throughout the application lifecycle.
- */
-export const config = {
-  name: "render-queue-worker",
-  // Run once on startup (special cron pattern that never repeats)
-  // We use a far-future date to ensure it only runs on application start
-  schedule: "0 0 1 1 *", // January 1st at midnight (effectively once per year)
-  numberOfExecutions: 1 // Execute only once during application runtime
 }

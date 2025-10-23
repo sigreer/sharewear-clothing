@@ -1,6 +1,7 @@
 import { Module } from "@medusajs/framework/utils"
 import RenderEngineService from "./service"
 import { RENDER_ENGINE_MODULE } from "./types"
+import renderQueueWorkerLoader from "./loaders/render-queue-worker"
 
 export * from "./types"
 export * from "./models"
@@ -16,5 +17,6 @@ export type { default as RenderEngineService } from "./service"
  * @module render-engine
  */
 export default Module(RENDER_ENGINE_MODULE, {
-  service: RenderEngineService
+  service: RenderEngineService,
+  loaders: [renderQueueWorkerLoader]
 })
