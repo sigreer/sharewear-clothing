@@ -1,0 +1,26 @@
+[
+  {
+    "session_id": "d0357952-4e87-4896-a6e3-a46fe4f48081",
+    "transcript_path": "/home/simon/.claude/projects/-home-simon-Dev-sigreer-sharewear-clothing/d0357952-4e87-4896-a6e3-a46fe4f48081.jsonl",
+    "cwd": "/home/simon/Dev/sigreer/sharewear.clothing/apps/server/src/modules/render-engine/__tests__",
+    "permission_mode": "default",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "cd /home/simon/Dev/sigreer/sharewear.clothing/apps/storefront1/tests && mkdir -p e2e && mv mega-menu-admin.spec.ts e2e/mega-menu-admin.e2e.spec.ts && mv mega-menu-manual.spec.ts e2e/mega-menu-manual.e2e.spec.ts && mv mega-menu-storefront.spec.ts e2e/mega-menu-storefront.e2e.spec.ts && echo \"\u2713 Moved and renamed all storefront tests to e2e/\"",
+      "description": "Reorganize storefront tests"
+    }
+  },
+  {
+    "session_id": "d0357952-4e87-4896-a6e3-a46fe4f48081",
+    "transcript_path": "/home/simon/.claude/projects/-home-simon-Dev-sigreer-sharewear-clothing/d0357952-4e87-4896-a6e3-a46fe4f48081.jsonl",
+    "cwd": "/home/simon/Dev/sigreer/sharewear.clothing/apps/server/src/modules/render-engine/__tests__",
+    "permission_mode": "default",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "cd /home/simon/Dev/sigreer/sharewear.clothing/apps/server/src/modules/dynamic-category-menu/__tests__ && mkdir -p unit && mv dynamic-category-menu.unit.spec.ts unit/ && echo \"\u2713 Moved dynamic-category-menu.unit.spec.ts to unit/\"",
+      "description": "Move dynamic-category-menu unit test"
+    }
+  }
+]

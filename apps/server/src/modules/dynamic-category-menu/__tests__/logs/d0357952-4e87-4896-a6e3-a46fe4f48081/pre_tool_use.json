@@ -1,0 +1,27 @@
+[
+  {
+    "session_id": "d0357952-4e87-4896-a6e3-a46fe4f48081",
+    "transcript_path": "/home/simon/.claude/projects/-home-simon-Dev-sigreer-sharewear-clothing/d0357952-4e87-4896-a6e3-a46fe4f48081.jsonl",
+    "cwd": "/home/simon/Dev/sigreer/sharewear.clothing/apps/server/src/modules/dynamic-category-menu/__tests__",
+    "permission_mode": "default",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "find /home/simon/Dev/sigreer/sharewear.clothing/apps/server/src/modules -name \"*.spec.ts\" -type f | sort",
+      "description": "Verify new test structure"
+    }
+  },
+  {
+    "session_id": "d0357952-4e87-4896-a6e3-a46fe4f48081",
+    "transcript_path": "/home/simon/.claude/projects/-home-simon-Dev-sigreer-sharewear-clothing/d0357952-4e87-4896-a6e3-a46fe4f48081.jsonl",
+    "cwd": "/home/simon/Dev/sigreer/sharewear.clothing/apps/server/src/modules/dynamic-category-menu/__tests__",
+    "permission_mode": "default",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "cd /home/simon/Dev/sigreer/sharewear.clothing/apps/server && bun run test:unit 2>&1 | grep -E \"PASS|FAIL|Tests:\"",
+      "timeout": 60000,
+      "description": "Test unit tests still work"
+    }
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "session_id": "d0357952-4e87-4896-a6e3-a46fe4f48081",
+    "transcript_path": "/home/simon/.claude/projects/-home-simon-Dev-sigreer-sharewear-clothing/d0357952-4e87-4896-a6e3-a46fe4f48081.jsonl",
+    "cwd": "/home/simon/Dev/sigreer/sharewear.clothing/apps/server/src/modules/dynamic-category-menu/__tests__",
+    "permission_mode": "default",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "cd /home/simon/Dev/sigreer/sharewear.clothing/apps/server/src/modules/dynamic-category-menu/__tests__ && mkdir -p unit && mv dynamic-category-menu.unit.spec.ts unit/ && echo \"\u2713 Moved dynamic-category-menu.unit.spec.ts to unit/\"",
+      "description": "Move dynamic-category-menu unit test"
+    },
+    "tool_response": {
+      "stdout": "\u2713 Moved dynamic-category-menu.unit.spec.ts to unit/",
+      "stderr": "",
+      "interrupted": false,
+      "isImage": false
+    }
+  },
+  {
+    "session_id": "d0357952-4e87-4896-a6e3-a46fe4f48081",
+    "transcript_path": "/home/simon/.claude/projects/-home-simon-Dev-sigreer-sharewear-clothing/d0357952-4e87-4896-a6e3-a46fe4f48081.jsonl",
+    "cwd": "/home/simon/Dev/sigreer/sharewear.clothing/apps/server/src/modules/dynamic-category-menu/__tests__",
+    "permission_mode": "default",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "find /home/simon/Dev/sigreer/sharewear.clothing/apps/server/src/modules -name \"*.spec.ts\" -type f | sort",
+      "description": "Verify new test structure"
+    },
+    "tool_response": {
+      "stdout": "/home/simon/Dev/sigreer/sharewear.clothing/apps/server/src/modules/dynamic-category-menu/__tests__/unit/dynamic-category-menu.unit.spec.ts\n/home/simon/Dev/sigreer/sharewear.clothing/apps/server/src/modules/render-engine/__tests__/integration/render-workflow.integration.spec.ts\n/home/simon/Dev/sigreer/sharewear.clothing/apps/server/src/modules/render-engine/__tests__/integration/workflow-integration.spec.ts\n/home/simon/Dev/sigreer/sharewear.clothing/apps/server/src/modules/render-engine/__tests__/unit/python-executor-service.unit.spec.ts",
+      "stderr": "",
+      "interrupted": false,
+      "isImage": false
+    }
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "session_id": "d0357952-4e87-4896-a6e3-a46fe4f48081",
+    "transcript_path": "/home/simon/.claude/projects/-home-simon-Dev-sigreer-sharewear-clothing/d0357952-4e87-4896-a6e3-a46fe4f48081.jsonl",
+    "cwd": "/home/simon/Dev/sigreer/sharewear.clothing/apps/server/src/modules/render-engine/__tests__",
+    "permission_mode": "default",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "cd /home/simon/Dev/sigreer/sharewear.clothing/apps/server/src/modules/render-engine/__tests__ && mv workflow-integration.spec.ts integration/ && echo \"\u2713 Moved workflow-integration.spec.ts to integration/\"",
+      "description": "Move workflow integration test"
+    },
+    "tool_response": {
+      "stdout": "\u2713 Moved workflow-integration.spec.ts to integration/",
+      "stderr": "",
+      "interrupted": false,
+      "isImage": false
+    }
+  },
+  {
+    "session_id": "d0357952-4e87-4896-a6e3-a46fe4f48081",
+    "transcript_path": "/home/simon/.claude/projects/-home-simon-Dev-sigreer-sharewear-clothing/d0357952-4e87-4896-a6e3-a46fe4f48081.jsonl",
+    "cwd": "/home/simon/Dev/sigreer/sharewear.clothing/apps/server/src/modules/render-engine/__tests__",
+    "permission_mode": "default",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "cd /home/simon/Dev/sigreer/sharewear.clothing/apps/server/src/modules/render-engine/__tests__ && mkdir -p unit && mv python-executor-service.unit.spec.ts unit/ && echo \"\u2713 Moved python-executor-service.unit.spec.ts to unit/\"",
+      "description": "Move unit test to unit subdirectory"
+    },
+    "tool_response": {
+      "stdout": "\u2713 Moved python-executor-service.unit.spec.ts to unit/",
+      "stderr": "",
+      "interrupted": false,
+      "isImage": false
+    }
+  }
+]
