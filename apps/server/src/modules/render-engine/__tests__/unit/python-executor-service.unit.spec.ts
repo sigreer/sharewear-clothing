@@ -22,7 +22,7 @@ jest.mock("fs/promises", () => ({
 }))
 
 // Now import after mocks are set up
-import PythonExecutorService from "../services/python-executor-service"
+import PythonExecutorService from "../../services/python-executor-service"
 import { MedusaError } from "@medusajs/framework/utils"
 import type { Logger } from "@medusajs/framework/types"
 import path from "path"
@@ -44,9 +44,10 @@ const createMockChildProcess = (options: {
   mockChild.stdout = new EventEmitter()
   mockChild.stderr = new EventEmitter()
   mockChild.pid = 12345
+  mockChild.kill = jest.fn()
 
   // Simulate process execution
-  setTimeout(() => {
+  setImmediate(() => {
     if (options.shouldError) {
       mockChild.emit("error", new Error(options.errorMessage || "Command failed"))
     } else if (!options.shouldTimeout) {
@@ -59,7 +60,7 @@ const createMockChildProcess = (options: {
       mockChild.emit("close", options.exitCode ?? 0)
     }
     // For timeout tests, we don't emit close event immediately
-  }, options.delay ?? 10)
+  })
 
   return mockChild
 }
@@ -98,6 +99,12 @@ describe("PythonExecutorService", () => {
 
     mockLogger = buildMockLogger()
     service = new PythonExecutorService({ logger: mockLogger })
+  })
+
+  afterEach(async () => {
+    // Wait for any pending promises and timers
+    await new Promise(resolve => setImmediate(resolve))
+    jest.runOnlyPendingTimers()
   })
 
   describe("executeCompose", () => {

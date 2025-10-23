@@ -10,10 +10,10 @@
 
 import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
 import { MedusaError } from "@medusajs/framework/utils"
-import { RENDER_ENGINE_MODULE } from "../types"
-import RenderJobService from "../services/render-job-service"
-import type { CreateRenderJobInput } from "../services/render-job-service"
-import type { RenderJobStatus } from "../types"
+import { RENDER_ENGINE_MODULE } from "../../types"
+import RenderJobService from "../../services/render-job-service"
+import type { CreateRenderJobInput } from "../../services/render-job-service"
+import type { RenderJobStatus } from "../../types"
 
 // Set longer timeout for integration tests
 jest.setTimeout(60000)

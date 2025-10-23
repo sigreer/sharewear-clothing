@@ -3,7 +3,9 @@ jest.setTimeout(60 * 1000)
 
 medusaIntegrationTestRunner({
   inApp: true,
-  env: {},
+  env: {
+    MEDUSA_BACKEND_URL: "http://localhost:9000",
+  },
   testSuite: ({ api }) => {
     describe("Ping", () => {
       it("ping the server health endpoint", async () => {
