@@ -54,11 +54,11 @@ Tests use the configuration from `.env.test`, which points to the same database 
 - **Runtime**: Fast (< 1 minute for full suite)
 
 ### Integration Tests
-- **HTTP Tests**: `integration-tests/http/*.spec.[jt]s`
+- **HTTP Tests**: `tests/integration/http/*.spec.[jt]s`
   - Test API endpoints end-to-end
   - Require running server instance
 
-- **Module Tests**: `src/modules/*/__tests__/**/*.[jt]s`
+- **Module Tests**: `src/modules/*/__tests__/integration/*.[jt]s`
   - Test module functionality with real database
   - Test service interactions and workflows
 

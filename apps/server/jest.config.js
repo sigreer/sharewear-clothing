@@ -19,11 +19,11 @@ module.exports = {
 };
 
 if (process.env.TEST_TYPE === "integration:http") {
-  module.exports.testMatch = ["**/integration-tests/http/*.spec.[jt]s"];
-  module.exports.setupFiles = ["./tests/integration-tests/pg-ssl-config.js", "./tests/integration-tests/setup.js"];
+  module.exports.testMatch = ["**/tests/integration/http/*.spec.[jt]s"];
+  module.exports.setupFiles = ["./tests/integration/pg-ssl-config.js", "./tests/integration/setup.js"];
 } else if (process.env.TEST_TYPE === "integration:modules") {
   module.exports.testMatch = ["**/src/modules/*/__tests__/**/*.[jt]s"];
-  module.exports.setupFiles = ["./tests/integration-tests/pg-ssl-config.js", "./tests/integration-tests/setup.js"];
+  module.exports.setupFiles = ["./tests/integration/pg-ssl-config.js", "./tests/integration/setup.js"];
 } else if (process.env.TEST_TYPE === "unit") {
   module.exports.testMatch = ["**/src/**/__tests__/**/*.unit.spec.[jt]s"];
 }
