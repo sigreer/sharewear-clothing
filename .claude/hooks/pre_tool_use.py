@@ -29,7 +29,8 @@ def extract_rm_targets(command):
     found_rm = False
 
     for part in parts:
-        if 'rm' in part.lower():
+        # Match 'rm' as a standalone command, not as part of other words
+        if part.lower() == 'rm' or part.lower().startswith('rm/'):
             found_rm = True
             continue
 
@@ -183,7 +184,8 @@ def main():
                 sys.exit(2)  # Exit code 2 blocks tool call and shows error to Claude
 
             # For other rm commands, create backups before proceeding
-            if re.search(r'\brm\s+', command):
+            # Only match rm at the start of the command (after optional variable assignments)
+            if re.search(r'^\s*(?:\w+=\S+\s+)*rm\s+', command):
                 targets = extract_rm_targets(command)
                 if targets:
                     # Create backups; only proceed if backup succeeds
