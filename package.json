@@ -27,6 +27,7 @@
     "db:migrate": "cd apps/server && bunx medusa db:migrate",
     "db:generate": "cd apps/server && bunx medusa db:generate",
     "db:seed": "cd apps/server && bun run seed",
+    "db:backup": "./apps/server/scripts/backup-database.sh",
     "setup": "bun install && bun run db:migrate && bun run db:seed",
     "clean": "rm -rf node_modules apps/*/node_modules apps/*/.next apps/*/dist apps/*/.medusa",
     "reset": "bun run clean && bun install",
