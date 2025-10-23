@@ -3,6 +3,10 @@ node_modules/
 */node_modules/
 apps/*/node_modules/
 
+__pycache__/
+ai_docs/
+.playwright-mcp/
+
 # Production builds
 dist/
 build/
