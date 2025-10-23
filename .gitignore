@@ -7,6 +7,11 @@ __pycache__/
 ai_docs/
 .playwright-mcp/
 
+# Backup files
+*.backup
+backups/
+deleted-temp/
+
 # Production builds
 dist/
 build/
@@ -31,6 +36,7 @@ apps/*/.env.production.local
 apps/*/.medusa/
 uploads/
 apps/*/uploads/
+apps/*/static/media/
 
 # Database
 *.db
