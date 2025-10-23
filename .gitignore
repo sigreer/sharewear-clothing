@@ -9,6 +9,9 @@ ai_docs/
 
 # Backup files
 *.backup
+*-backup
+*.backup.*
+*-backup.*
 backups/
 deleted-temp/
 
