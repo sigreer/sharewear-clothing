@@ -34,7 +34,7 @@
     "agent-observer": "cd scripts && ./start-agent-observer.sh"
   },
   "devDependencies": {
-    "shadcn": "^3.4.0"
+    "shadcn": "^3.5.0"
   },
   "keywords": [
     "sharewear",
