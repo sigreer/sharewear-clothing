@@ -39,9 +39,9 @@ apps/*/.next/
 # Medusa
 .medusa/
 apps/*/.medusa/
-# uploads/
-# apps/*/uploads/
-# apps/*/static/media/
+uploads/
+apps/*/uploads/
+apps/*/static/media/
 
 # Database
 *.db
@@ -63,8 +63,8 @@ pids
 *.seed
 *.pid.lock
 
-# # Coverage directory used by tools like istanbul
-# coverage/
+# Coverage directory used by tools like istanbul
+coverage/
 *.lcov
 .nyc_output
 
@@ -160,27 +160,28 @@ bun.lockb
 # Custom utilities (keep in repo for team)
 # change-password.js - Keep this utility for password resets
 
-# # Blender and 3D rendering outputs
-# assets/test*/
-# assets/animated-t-shirt/
-# assets/2d-design/
-# assets/*.blend1
-# assets/*.blend2
-# *.blend1
-# *.blend2
-# output/*.png
-# output/*.jpg
-# output/*.mp4
-# output/*.glb
-# output/*.gltf
+# Blender and 3D rendering outputs
+assets/test*/
+assets/animated-t-shirt/
+assets/2d-design/
+assets/*.blend1
+assets/*.blend2
+*.blend1
+*.blend2
+output/*.png
+output/*.jpg
+output/*.mp4
+output/*.glb
+output/*.gltf
 
-# # Temporary design files
-# assets/drawing.svg
-# assets/manual-save-*.png
-# assets/this-is-*.png
+# Temporary design files
+assets/drawing.svg
+assets/manual-save-*.png
+assets/this-is-*.png
 
-# # Agent observer apps (separate repos/experimental)
-# apps/agent-observer-*/
+# Agent observer apps (separate repos/experimental)
+apps/agent-observer-*/
+.env.agent-observer
 
-# # Draft documentation
-# docs/draft/
+# Draft documentation
+docs/draft/
